@@ -4,13 +4,13 @@ import { env } from './config/env.js';
 import { requestIdMiddleware } from './middleware/request-id.js';
 import { notFoundHandler } from './middleware/not-found.js';
 import { errorHandler } from './middleware/error-handler.js';
-import { apiRoutes } from './routes/index.js';
+import { createApiRoutes } from './routes/index.js';
 
 /**
  * Constructs and configures the Express application.
  * Does not start listening so it can be imported cleanly for testing.
  */
-export function createApp() {
+export function createApp({ verifyUser } = {}) {
   const app = express();
 
   // 1. Request ID tracking (must be first)
@@ -40,7 +40,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // 4. Mount API routes under /api/v1
-  app.use('/api/v1', apiRoutes);
+  app.use('/api/v1', createApiRoutes(verifyUser));
 
   // 5. JSON 404 handler for unmatched routes
   app.use(notFoundHandler);

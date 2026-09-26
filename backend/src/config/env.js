@@ -14,6 +14,12 @@ dotenv.config({ path: envPath });
 dotenv.config();
 
 const envSchema = z.object({
+  SUPABASE_URL: z.string().url().refine((value) => {
+    const url = URL.parse(value);
+    return url !== null && ['https:', 'http:'].includes(url.protocol) && !url.username &&
+      !url.password && !url.search && !url.hash && url.pathname === '/';
+  }),
+  SUPABASE_PUBLISHABLE_KEY: z.string().regex(/^sb_publishable_[A-Za-z0-9_-]+$/),
   PORT: z
     .string()
     .default('4000')
@@ -38,8 +44,8 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('Invalid environment configuration:');
-  console.error(parsed.error.format());
+  const variables = [...new Set(parsed.error.issues.map((issue) => issue.path[0]))];
+  console.error(`Invalid environment configuration: ${variables.join(', ')}`);
   process.exit(1);
 }
 

@@ -52,7 +52,30 @@ This document tracks backend engineering progress, architectural decisions, comp
 
 ---
 
-### Task 2: Supabase Project Setup & Authentication Connection
-- **Status:** NOT STARTED
-- **Description:** Set up database migrations, verified access tokens, request-scoped Supabase client, and user session context.
-- **Dependencies:** Task 1 completed and signed off.
+### Task 2: Supabase Auth and protected identity endpoint
+- **Status:** IMPLEMENTED; offline verification passed; live authenticated check PENDING.
+- **Scope:** Supabase Auth identity only. The current task overrides the older migration/request-scoped database-client description. No database, profile, role or frontend changes.
+- **Implemented:**
+  - Added only `@supabase/supabase-js` as a direct runtime dependency (2.117.2 in the lockfile).
+  - Validated the project URL and modern publishable key; safe startup errors name variables only. PORT, NODE_ENV and ALLOWED_ORIGINS retained.
+  - Added a stateless server client with persistence, refresh and URL session detection disabled. The SDK-supported global.fetch hook applies an eight-second abort to Auth requests.
+  - Added Bearer parsing and getUser verification, minimal request identity, safe 401 errors, retryable 503 for connection failures/timeouts/5xx/provider rate limits, and sanitized unexpected errors through the existing handler.
+  - Added GET /api/v1/me returning only id/email with no-store. Public health handler is unchanged.
+  - Added frontend Auth contract, Windows smoke-test instructions, manual verification script and Node built-in tests. No development bypass.
+- **Verification (2026-09-26):**
+  - Before changes: lint passed; health returned 200 with matching request ID.
+  - Final `npm run lint`: passed, no errors/warnings.
+  - Final `npm test`: 30 passed, 0 failed; no external Auth network calls or real credentials. Includes rejection, success/field filtering, outage, rate limit, public health, safe startup errors, concurrent SDK tokens and actual eight-second cancellation with mocked fetch.
+  - Additional tests caught a malformed-URL validation exception during implementation; corrected with non-throwing URL parsing and verified safe variable-only output.
+  - `npm start` with the configured local environment: passed on port 4000.
+  - Public health: 200 with unchanged data and matching request ID.
+  - Unauthenticated /me: 401 AUTH_REQUIRED, retryable false, no-store, matching request ID.
+  - `npm run verify:auth`: not run against Auth because SUPABASE_TEST_EMAIL / SUPABASE_TEST_PASSWORD are not configured. Script reported FAIL status=not-run expectedUserMatched=false and exited 1, as intended for missing optional credentials.
+  - Live authenticated identity remains pending; do not claim Supabase fully connected or database access verified.
+  - Dependency install audit: 0 vulnerabilities. Git diff whitespace check passed; .env remains ignored.
+- **Manual remaining work:** Follow docs/auth-contract.md: configure a dedicated ordinary test account locally in ignored .env, start the server, run npm.cmd run verify:auth and confirm PASS status=200 expectedUserMatched=true. Never paste credentials into chat.
+- **Git:** Task branch codex/task-2-supabase-auth; only Task 2 backend files belong in the commit. Commit/push outcome is reported in the task handoff.
+
+### Task 3: Database schema, profiles and access rules
+- **Status:** PLANNED — NOT STARTED.
+- Await explicit authorization before implementation.
