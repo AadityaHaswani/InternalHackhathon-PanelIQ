@@ -181,7 +181,7 @@ export async function listCompletedSessions(client, userId, user = {}) {
   const query = client
     .from('sessions')
     .select('id, user_id, status, current_position, version, created_at, completed_at, profile_snapshot')
-    .eq('status', 'completed')
+    .in('status', ['completed', 'ready_to_complete'])
     .order('completed_at', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(100);
@@ -193,8 +193,8 @@ export async function listCompletedSessions(client, userId, user = {}) {
     status: row.status,
     createdAt: row.created_at,
     created_at: row.created_at,
-    completedAt: row.completed_at,
-    completed_at: row.completed_at,
+    completedAt: row.completed_at || row.created_at,
+    completed_at: row.completed_at || row.created_at,
     totalTurns: 8,
     answeredCount: 8,
     profile: {
@@ -219,10 +219,11 @@ export async function listCompletedSessions(client, userId, user = {}) {
 export async function listApprovedEvaluators(client, userId, user = {}) {
   await verifyAdmin(client, userId, user);
 
+  // Fetch only users with role = 'evaluator' (admins must NOT be included)
   const roleRows = databaseData(await client
     .from('user_roles')
     .select('user_id, role')
-    .in('role', ['evaluator', 'admin'])) || [];
+    .eq('role', 'evaluator')) || [];
 
   const userIds = [...new Set(roleRows.map((r) => r.user_id))];
   let profiles = [];
@@ -238,17 +239,28 @@ export async function listApprovedEvaluators(client, userId, user = {}) {
 
   const evaluators = roleRows.map((r) => {
     const prof = profileMap.get(r.user_id);
-    const name = prof?.display_name || (r.role === 'admin' ? 'Admin Reviewer' : 'Evaluator');
+    const displayName = prof?.display_name || 'Evaluator';
+    const targetRole = prof?.target_role || null;
+    const specialty = targetRole ? targetRole.replace(/_/g, ' ') : 'Technical Evaluator';
+
     return {
       id: r.user_id,
       userId: r.user_id,
       user_id: r.user_id,
-      name,
-      displayName: name,
+      evaluatorId: r.user_id,
+      name: displayName,
+      displayName,
+      display_name: displayName,
       role: r.role,
-      specialty: prof?.target_role ? prof.target_role.replace(/_/g, ' ') : (r.role === 'admin' ? 'Lead Evaluator' : 'Technical Evaluator'),
+      targetRole,
+      target_role: targetRole,
+      specialty,
+      specialization: specialty,
     };
   });
+
+  // Sort deterministically by displayName
+  evaluators.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   return { evaluators };
 }
@@ -281,8 +293,19 @@ export async function createReviewAssignment(client, userId, user = {}, { sessio
     throw new SessionError(404, 'SESSION_NOT_FOUND', `Session ${sessionId} not found`);
   }
 
-  if (session.status !== 'completed') {
+  if (!['completed', 'ready_to_complete'].includes(session.status)) {
     throw new SessionError(400, 'SESSION_INCOMPLETE', 'Only completed sessions can be assigned to evaluators');
+  }
+
+  // If session is ready_to_complete, automatically finalize it to completed
+  if (session.status === 'ready_to_complete') {
+    await client
+      .from('sessions')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
   }
 
   // 2. Evaluator cannot review their own session

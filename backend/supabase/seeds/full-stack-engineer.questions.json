@@ -1,0 +1,482 @@
+[
+  {
+    "id": "fs-j-intro-stack",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "icebreaker",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Describe a full-stack project you created from scratch. Which backend language/framework and frontend library did you choose, and why?",
+    "followUp": "If you had to add a background processing job to that application today, where would you run it?",
+    "concepts": [
+      "End-to-end application architecture (client, API, database)",
+      "Rationale behind technology stack selection",
+      "Understanding of deployment and operational boundaries"
+    ],
+    "anchors": {
+      "0": "Cannot describe an end-to-end application or explain the boundary between client and server.",
+      "1": "Describes a basic tutorial clone without knowing why specific libraries or database models were chosen.",
+      "2": "Explains frontend and backend components, but provides shallow reasoning for data storage or API design.",
+      "3": "Clearly details frontend client, API routing layer, database schema design, and deployment choices with trade-offs.",
+      "4": "Deep systems perspective: explains data serialization, API contract versioning, security posture, and scaling limitations."
+    },
+    "rubricNotes": "Unscored icebreaker. Look for authentic ownership, clear full-stack mental model, and honest boundaries."
+  },
+  {
+    "id": "fs-j-rest-contract",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "apis"
+    ],
+    "prompt": "How do you design and document the REST contract between your frontend UI and backend API so that both can be developed in parallel without breaking changes?",
+    "followUp": "What happens when the backend changes a response field from a string to an object while older mobile clients are still live?",
+    "concepts": [
+      "API contract specification (OpenAPI / Swagger / JSON Schema)",
+      "Mocking API responses for independent frontend development",
+      "Backward compatibility and field deprecation strategies"
+    ],
+    "anchors": {
+      "0": "Believes frontend and backend developers must wait for each other rather than defining a shared schema first.",
+      "1": "Relies on informal Slack messages for API contracts; cannot explain how to handle breaking field changes.",
+      "2": "Uses OpenAPI or Postman collections to document endpoints, but has no strategy for versioning or mock servers.",
+      "3": "Establishes clear API schemas with TypeScript interfaces or OpenAPI; sets up mock servers; explains additive changes for backward compatibility.",
+      "4": "Exemplary contract engineering: generates client SDKs directly from backend schemas, enforces contract tests in CI, and explains Sunset headers."
+    },
+    "rubricNotes": "Technical scoring guidance. Tests API design discipline, cross-tier collaboration, and versioning."
+  },
+  {
+    "id": "fs-j-auth-session-flow",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "Trace a complete login flow: user submits credentials in the browser, backend verifies password hash, and the user accesses protected endpoints. How is authentication state maintained?",
+    "followUp": "Why is bcrypt or Argon2 used for password hashing on the backend instead of fast algorithms like MD5 or SHA-256?",
+    "concepts": [
+      "End-to-end credential transmission (HTTPS, password hashing verification)",
+      "Session token generation and verification (JWT vs stateful server sessions)",
+      "Protecting tokens from client-side tampering and theft"
+    ],
+    "anchors": {
+      "0": "Suggests storing plaintext passwords in the database or sending passwords over unencrypted HTTP.",
+      "1": "Knows passwords should be hashed, but thinks SHA-256 is sufficient and cannot explain session persistence.",
+      "2": "Explains bcrypt hashing and sending JWT back to client, but suggests storing sensitive tokens in localStorage.",
+      "3": "Traces complete flow: HTTPS POST -> bcrypt comparison -> signed JWT/session cookie -> Authorization header / HttpOnly cookie -> auth middleware.",
+      "4": "Security depth: articulates work factor / salt generation, token expiration/refresh cycles, revocation strategies, and CSRF/XSS defenses."
+    },
+    "rubricNotes": "Technical scoring guidance. Focuses on full-stack authentication fundamentals and security awareness."
+  },
+  {
+    "id": "fs-j-crud-transaction",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "databases"
+    ],
+    "prompt": "When a user creates an order with line items, explain how the backend writes to multiple database tables atomically, and what response the frontend expects on partial failure.",
+    "followUp": "What SQL commands are used to initiate, commit, and abort a multi-statement database transaction?",
+    "concepts": [
+      "Database transactions and ACID atomicity (all-or-nothing guarantee)",
+      "Foreign key relationships between orders and order_items",
+      "Consistent error handling across database rollback and API HTTP response"
+    ],
+    "anchors": {
+      "0": "Inserts order header and items sequentially without a transaction, risking orphaned order records on crash.",
+      "1": "Knows transactions exist, but cannot explain what happens if inserting the third item throws an error.",
+      "2": "Uses BEGIN / COMMIT / ROLLBACK in backend code, but returns generic 500 error without informing the frontend.",
+      "3": "Wraps multi-table writes in an explicit transaction; guarantees automatic rollback on failure; returns structured 4xx/5xx error with rollback safety.",
+      "4": "Deep transaction design: discusses isolation levels, lock contention, inventory reservation checks, and idempotent client retries."
+    },
+    "rubricNotes": "Technical scoring guidance. Evaluates transactional data integrity and error propagation to client."
+  },
+  {
+    "id": "fs-j-cors-configuration",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "apis"
+    ],
+    "prompt": "Why does a browser raise a CORS error when the frontend on localhost:3000 calls an API on localhost:8000, and what backend header configuration resolves it safely?",
+    "followUp": "What is a preflight OPTIONS request, and why does the browser send it before certain POST or PUT requests?",
+    "concepts": [
+      "Same-Origin Policy as a browser security mechanism",
+      "CORS response headers (Access-Control-Allow-Origin, Allow-Methods, Allow-Headers)",
+      "Preflight OPTIONS requests triggered by custom headers or non-simple content types"
+    ],
+    "anchors": {
+      "0": "Thinks CORS is a backend server bug or suggests disabling browser security settings as a solution.",
+      "1": "Configures Access-Control-Allow-Origin: * indiscriminately without understanding credentialed request implications.",
+      "2": "Explains Same-Origin Policy and adds allowed origin headers, but cannot explain what triggers a preflight request.",
+      "3": "Clearly explains Same-Origin Policy, configures specific allowed origins, and explains why custom headers (e.g. Authorization) trigger preflight.",
+      "4": "Comprehensive security understanding: explains credentialed requests (withCredentials), preflight caching (Max-Age), and proxying in development."
+    },
+    "rubricNotes": "Technical scoring guidance. Tests foundational understanding of web security boundaries."
+  },
+  {
+    "id": "fs-j-optimistic-updates",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "concurrency"
+    ],
+    "prompt": "Explain optimistic UI updates: when a user clicks Like, the UI immediately reflects the change before server confirmation. What happens if the server returns an error?",
+    "followUp": "How do you handle a scenario where the user clicks Like and Unlike three times in rapid succession?",
+    "concepts": [
+      "Optimistic rendering pattern for perceived performance",
+      "Rollback mechanisms and restoring previous state on server error",
+      "Debouncing and request cancellation for rapid sequential toggles"
+    ],
+    "anchors": {
+      "0": "Leaves the UI in the optimistic state even when the server explicitly fails.",
+      "1": "Reverts the UI on error, but provides zero visual notification to the user that the operation failed.",
+      "2": "Handles error rollback and toast notification, but rapid sequential clicks trigger multiple conflicting backend writes.",
+      "3": "Maintains previous state snapshot; rolls back UI cleanly with error notification; debounces or chains rapid toggles.",
+      "4": "Production UI architecture: details request sequence tracking, event sourcing / state reducer patterns, and offline sync."
+    },
+    "rubricNotes": "Technical scoring guidance. Focuses on client-server state coordination and asynchronous resilience."
+  },
+  {
+    "id": "fs-j-project-auth-scope",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "techno_managerial",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "A deadline approaches and authentication is incomplete. The team debates shipping simple mock session cookies versus proper token validation. How do you handle security versus timeline?",
+    "followUp": "What minimal viable authentication slice could be safely shipped if full OAuth is deferred?",
+    "concepts": [
+      "Security as a non-negotiable baseline in production systems",
+      "Scoping down feature surface area instead of weakening security controls",
+      "Clear, risk-based communication with project stakeholders"
+    ],
+    "anchors": {
+      "0": "Willingly agrees to ship mock insecure cookies to production to meet the marketing date.",
+      "1": "Refuses to ship anything but offers no constructive scope reduction alternatives.",
+      "2": "Suggests basic auth without SSL/HTTPS or password hashing as a compromise.",
+      "3": "Firmly explains vulnerability risks; proposes scoping down (e.g. email/password with secure bcrypt + HttpOnly cookie, deferring OAuth/SSO).",
+      "4": "Strategic engineering leadership: presents threat model, regulatory impact, calculates technical debt remediation cost, and aligns team."
+    },
+    "rubricNotes": "Techno-managerial guidance. Evaluates ethical engineering standards and constructive trade-off negotiation."
+  },
+  {
+    "id": "fs-j-project-schema-change",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "You need to rename a database column that is currently consumed by both mobile and web clients. How do you coordinate the deployment to prevent downtime for active users?",
+    "followUp": "Why is an Expand-and-Contract migration pattern required instead of a single ALTER TABLE RENAME command?",
+    "concepts": [
+      "Zero-downtime database migrations (Expand and Contract / Parallel Run)",
+      "Multi-phase deployment: add new column, dual-write, backfill, migrate clients, drop old column",
+      "Client version lag (especially un-updated native mobile apps)"
+    ],
+    "anchors": {
+      "0": "Suggests running ALTER TABLE RENAME COLUMN in production and deploying frontend and backend simultaneously.",
+      "1": "Understands that simultaneous deployment is risky, but cannot outline the concrete phases of an expand-contract migration.",
+      "2": "Adds the new column and writes to it, but forgets to backfill existing data or account for older mobile client versions.",
+      "3": "Outlines complete Expand-Contract phases: (1) add new column + dual-write, (2) backfill historical rows, (3) update clients, (4) retire old column.",
+      "4": "Deep operational insight: details view/trigger abstraction, zero-downtime lock timeouts, backward compatibility windows, and telemetry validation."
+    },
+    "rubricNotes": "Techno-managerial guidance. Focuses on safe production change management and zero-downtime practices."
+  },
+  {
+    "id": "fs-j-project-env-secrets",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "techno_managerial",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "An engineer accidentally commits a database password or API secret into a frontend repository. What immediate steps do you take to remediate the exposure?",
+    "followUp": "Why is pushing a second commit that deletes the secret file from git insufficient to secure the credential?",
+    "concepts": [
+      "Immediate credential rotation and revocation as primary containment",
+      "Git commit history persistence and repository exposure risks",
+      "Preventative tooling: pre-commit hooks (git-secrets, gitleaks), environment secret managers"
+    ],
+    "anchors": {
+      "0": "Simply pushes a new commit deleting the secret from the file, believing the issue is solved.",
+      "1": "Recognizes the git history contains the secret, but fails to rotate the actual database credential immediately.",
+      "2": "Rewrites git history with git filter-repo or BFG, but delays credential invalidation on the cloud provider.",
+      "3": "Prioritizes immediate secret revocation/rotation in production; checks access logs; rewrites git history; adds pre-commit secret scanners.",
+      "4": "Mature incident response: conducts blast-radius audit in cloud logs, rotates all related credentials, introduces secret management vault, and leads blameless review."
+    },
+    "rubricNotes": "Techno-managerial guidance. Evaluates operational security instincts and incident containment priorities."
+  },
+  {
+    "id": "fs-j-reflect-debugging",
+    "role": "full_stack_engineer",
+    "level": "junior",
+    "stage": "reflection",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "Describe an issue where you initially thought the bug was on the frontend but discovered the root cause was in the backend or database. What did you learn about cross-tier isolation?",
+    "followUp": "What diagnostic tool (e.g. Network tab, backend logs, DB query profiler) provided the breakthrough evidence?",
+    "concepts": [
+      "Cross-tier debugging and root-cause isolation across network boundaries",
+      "Inspecting HTTP payloads in browser devtools vs inspecting backend database logs",
+      "Humble reflection and refining troubleshooting heuristics"
+    ],
+    "anchors": {
+      "0": "Cannot recall any cross-tier bug or insists they always pinpoint root causes on the very first try.",
+      "1": "Describes a bug, but spent hours changing random frontend code without checking Network tab payloads.",
+      "2": "Identifies that the backend returned incorrect data, but cannot explain how they traced it into the database.",
+      "3": "Clearly details the false symptom on the UI, the systematic inspection of network payloads and server logs, and the database root cause.",
+      "4": "Exemplary troubleshooting reflection: discusses contract testing gaps, correlation IDs, defensive typing, and how it shaped their verification habits."
+    },
+    "rubricNotes": "Unscored reflection. Reward intellectual honesty, methodical troubleshooting, and cross-tier insights."
+  },
+  {
+    "id": "fs-i-intro-fullstack-arch",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "icebreaker",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Walk us through an end-to-end architecture you designed for a web platform. How did you balance business agility against long-term operational complexity?",
+    "followUp": "What was the first architectural bottleneck you encountered when real users started stressing the system?",
+    "concepts": [
+      "Comprehensive end-to-end architectural vision (CDN, client, API gateway, services, database, cache)",
+      "Pragmatic trade-offs between velocity and maintainability",
+      "Observability and identifying real production bottlenecks"
+    ],
+    "anchors": {
+      "0": "Describes a generic textbook architecture without demonstrating real ownership or context.",
+      "1": "Describes tools used (e.g. Next.js + PostgreSQL) but cannot explain architectural choices or boundary divisions.",
+      "2": "Covers the full stack, but focuses heavily on one tier while treating the other tier as a black box.",
+      "3": "Articulates end-to-end data flow, network boundaries, caching layers, deployment pipeline, and trade-offs made.",
+      "4": "Senior full-stack leadership: analyzes operational complexity, error budgets, security attack surface, and evolutionary roadmap."
+    },
+    "rubricNotes": "Unscored icebreaker. Look for comprehensive systems thinking, technical depth across tiers, and trade-off maturity."
+  },
+  {
+    "id": "fs-i-ssr-hydration-perf",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "concurrency"
+    ],
+    "prompt": "Compare Server-Side Rendering (SSR) with Client-Side Rendering (CSR). How does hydration work, and what causes server-client markup mismatch warnings in production?",
+    "followUp": "How does React 18 Server Components and HTML streaming improve Time to First Byte (TTFB) and First Input Delay (FID)?",
+    "concepts": [
+      "SSR HTML generation on Node server vs client-side bundle hydration and event attachment",
+      "Common hydration mismatch causes: window access during render, dynamic dates/timestamps, browser extension DOM injection",
+      "Streaming SSR and Suspense boundaries for progressive rendering"
+    ],
+    "anchors": {
+      "0": "Cannot explain hydration or thinks SSR and CSR produce identical performance profiles.",
+      "1": "Knows SSR helps SEO, but cannot explain why the page is unresponsive before JavaScript hydration finishes.",
+      "2": "Explains hydration mismatches caused by Date.now() or window, but offers ad-hoc suppressHydrationWarning workarounds.",
+      "3": "Deeply explains reconciliation between server HTML AST and client VDOM; resolves mismatches using useEffect mounting checks or deterministic formatting.",
+      "4": "Cutting-edge rendering mastery: explains React Server Components (RSC) zero-bundle-size benefits, selective hydration, and edge runtime compute."
+    },
+    "rubricNotes": "Technical scoring guidance. Focuses on full-stack rendering mechanics and modern web performance."
+  },
+  {
+    "id": "fs-i-distributed-sessions",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "databases"
+    ],
+    "prompt": "When scaling a backend to multiple instances behind a load balancer, how do you handle user sessions without pinning users to a single server instance with sticky sessions?",
+    "followUp": "Compare using centralized Redis session storage against stateless signed/encrypted JWT cookies. What are the revocation trade-offs?",
+    "concepts": [
+      "Stateless horizontal application scaling behind round-robin load balancers",
+      "Centralized session store (Redis) with TTL vs stateless JWT in cookies",
+      "Immediate session revocation, logout invalidation, and token blacklisting"
+    ],
+    "anchors": {
+      "0": "Relies on local server memory for session storage, causing random logouts when requests hit different instances.",
+      "1": "Suggests sticky sessions without realizing it hampers auto-scaling and causes uneven load distribution.",
+      "2": "Compares JWT vs Redis sessions, but cannot explain how to invalidate a compromised JWT before its expiration time.",
+      "3": "Coherently articulates shared Redis session store vs JWT; explains token revocation lists, refresh token rotation, and cookie security flags.",
+      "4": "Expert distributed session architecture: discusses Redis cluster replication, multi-region session latency, and hybrid stateless token/short-TTL models."
+    },
+    "rubricNotes": "Technical scoring guidance. Evaluates horizontal scaling principles, session consistency, and security revocation."
+  },
+  {
+    "id": "fs-i-websocket-realtime",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "concurrency"
+    ],
+    "prompt": "Design a real-time collaborative feature (like live document updates or notifications). How do you handle connection drops, reconnection backoff, and state re-synchronization?",
+    "followUp": "If your backend scales across 10 instances, how does a WebSocket message published on Server 1 reach a client connected to Server 8?",
+    "concepts": [
+      "Persistent WebSocket / SSE connections vs HTTP polling",
+      "Pub/Sub message broker (Redis Pub/Sub, RabbitMQ, Kafka) for multi-node connection routing",
+      "Reconnection resilience: heartbeat ping/pong, exponential backoff with jitter, missing event replay from sequence offset"
+    ],
+    "anchors": {
+      "0": "Suggests short-polling every 100ms or assumes a single WebSocket server instance can handle unlimited connections.",
+      "1": "Uses WebSockets on a single server, but cannot explain how connections are coordinated when the backend scales horizontally.",
+      "2": "Implements Redis Pub/Sub for cross-server message distribution, but has no mechanism for re-syncing missed events on disconnect.",
+      "3": "Designs full pub/sub distribution; implements client reconnection with exponential backoff; uses sequence numbers to replay missed events.",
+      "4": "Senior real-time systems mastery: compares WebSockets vs SSE vs WebTransport; addresses CRDTs/OT for conflict resolution and connection drain on deploy."
+    },
+    "rubricNotes": "Technical scoring guidance. Tests real-time bidirectional communication, horizontal scaling, and fault tolerance."
+  },
+  {
+    "id": "fs-i-rate-limiting-layers",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "Where should rate limiting be implemented in a full-stack system—API gateway, reverse proxy, or application middleware—and how do you communicate limit exhaustion to the frontend?",
+    "followUp": "What standard HTTP headers (like Retry-After and RateLimit) inform frontend clients how to back off gracefully?",
+    "concepts": [
+      "Layered rate limiting (Edge/Cloudflare, API Gateway, application middleware with Redis)",
+      "Algorithms: Token Bucket, Leaky Bucket, Sliding Window Counter",
+      "Standard HTTP 429 Too Many Requests response with Retry-After and client backoff coordination"
+    ],
+    "anchors": {
+      "0": "Implements in-memory rate limiting inside Node process, failing immediately when multiple server instances run.",
+      "1": "Returns HTTP 500 or closes socket when rate limit is hit, confusing clients and breaking frontend error handling.",
+      "2": "Uses Redis sliding window counter and returns 429, but omits standard headers needed for client backoff.",
+      "3": "Implements distributed Redis rate limiter; returns standard 429 with Retry-After; frontend intercepts 429 to disable UI triggers and show countdown.",
+      "4": "Production resilience: defines multi-tiered limits (IP-based at edge, user/token-based in app), tier-based quotas, and circuit breaker degradation."
+    },
+    "rubricNotes": "Technical scoring guidance. Emphasizes distributed protection, standard HTTP protocols, and frontend backoff integration."
+  },
+  {
+    "id": "fs-i-idempotent-mutations",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "apis"
+    ],
+    "prompt": "How do you design an idempotent payment or checkout submission across frontend retries and backend order placement so a user double-clicking never triggers duplicate billing?",
+    "followUp": "How does the backend distinguish between an identical retry of a pending payment versus a brand new transaction using the same idempotency key?",
+    "concepts": [
+      "Idempotency key generation on client (UUIDv4 per distinct user intent)",
+      "Backend atomic reservation (unique index or Redis lock with status: in_progress, completed, failed)",
+      "Persisting and returning cached response payload for duplicate successful requests"
+    ],
+    "anchors": {
+      "0": "Relies solely on disabling the submit button in the browser, which is easily bypassed by network retries or fast double-clicks.",
+      "1": "Checks if order exists before inserting, but has a race condition between the check and the payment execution.",
+      "2": "Generates idempotency keys, but does not persist the final response body to return for identical retries.",
+      "3": "End-to-end idempotency: client generates UUID key; backend uses unique constraint / transactional lock; returns cached response for duplicates.",
+      "4": "Flawless transaction design: handles in-flight concurrency (HTTP 409 / polling), payload fingerprint matching to detect key reuse with altered body, and TTL expiry."
+    },
+    "rubricNotes": "Technical scoring guidance. Focuses on bulletproof financial transaction safety and client-server idempotency."
+  },
+  {
+    "id": "fs-i-project-monolith-decouple",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "A growing startup debates splitting a Rails/Node monolith into separate frontend and microservice repositories. How do you advise the leadership team on the trade-offs and transition?",
+    "followUp": "What organizational and tooling costs (CI/CD, local dev environment orchestration, contract testing) do teams often underestimate?",
+    "concepts": [
+      "Monolith vs microservices trade-offs: deployment velocity vs distributed operational complexity",
+      "Team topology and Conway's Law alignment before architectural splitting",
+      "Intermediate step: Modular Monolith with strict boundary enforcement"
+    ],
+    "anchors": {
+      "0": "Dogmatically insists that microservices are always superior and urges immediate splitting without assessing team size.",
+      "1": "Warns against microservices but cannot explain specific costs like distributed tracing, network latency, or eventual consistency.",
+      "2": "Compares monolith vs microservices, but overlooks the development environment overhead (Docker Compose, shared mock data).",
+      "3": "Advises based on team scale; highlights underestimated costs (contract testing, observability, distributed transactions); proposes Modular Monolith first.",
+      "4": "Executive-level engineering strategy: evaluates deployment frequency bottlenecks, domain boundaries via DDD, and outlines an incremental decoupling roadmap."
+    },
+    "rubricNotes": "Techno-managerial guidance. Evaluates architectural judgment, organizational realism, and pragmatic scaling."
+  },
+  {
+    "id": "fs-i-project-incident-triage",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "techno_managerial",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "A production incident occurs where checkout error rates spike to 15% after a joint frontend/backend deployment. What is your systematic process for incident triage and rollback?",
+    "followUp": "How do you decide whether to roll back both tiers immediately versus hotfixing the backend forward?",
+    "concepts": [
+      "Incident management protocol: triage, mitigation (rollback first), communication, root-cause analysis",
+      "Differentiating frontend runtime exceptions from backend API failures in telemetry",
+      "Blameless post-mortem culture and automated rollback triggers"
+    ],
+    "anchors": {
+      "0": "Panics, tries live debugging on production servers without rolling back, worsening customer impact.",
+      "1": "Rolls back randomly without checking deployment logs or error dashboards to see which tier caused the regression.",
+      "2": "Executes rollback, but fails to communicate with customer support or document the timeline for post-mortem.",
+      "3": "Systematic triage: declares incident, checks error telemetry (Sentry/Datadog), executes fast automated rollback to restore stability, notifies stakeholders.",
+      "4": "Exemplary incident command: coordinates blameless post-mortem, analyzes telemetry canary thresholds, evaluates feature flags for rollback decoupling, and creates preventative tests."
+    },
+    "rubricNotes": "Techno-managerial guidance. Tests production incident triage, emotional composure, and mitigation rigor."
+  },
+  {
+    "id": "fs-i-project-tech-debt",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Developers complain that lack of automated integration tests across the API boundary is slowing feature delivery by 40%. How do you build a business case to allocate sprint time for test infrastructure?",
+    "followUp": "How would you demonstrate measurable business ROI from investing two full sprints into automated test harnesses?",
+    "concepts": [
+      "Translating technical debt into business impact (delivery velocity, regression costs, customer churn)",
+      "Incremental test harness implementation rather than all-or-nothing sprint freezes",
+      "Tracking lead time for changes and change failure rate (DORA metrics)"
+    ],
+    "anchors": {
+      "0": "Complains about bad code to management without providing data or proposing a structured remedy.",
+      "1": "Requests stopping all product features for two months to write tests without demonstrating business value.",
+      "2": "Proposes writing tests, but defines no metrics to prove whether developer velocity or defect rate actually improved.",
+      "3": "Presents data on regression bug hours; proposes 20% sprint allocation; focuses on critical business paths (e.g. checkout, auth); tracks DORA metrics.",
+      "4": "Senior engineering advocacy: builds compelling executive ROI model, integrates contract test fixtures into existing CI, and establishes automated regression gates."
+    },
+    "rubricNotes": "Techno-managerial guidance. Focuses on technical advocacy, stakeholder translation, and business alignment."
+  },
+  {
+    "id": "fs-i-reflect-stack-choice",
+    "role": "full_stack_engineer",
+    "level": "intermediate",
+    "stage": "reflection",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Reflect on a framework or tool you selected for a full-stack project that turned out to be the wrong choice. What warning signs did you miss, and how do you evaluate technology today?",
+    "followUp": "What criteria (community vitality, documentation, operational complexity) do you prioritize now over hype?",
+    "concepts": [
+      "Honest post-mortem of a past technical selection mistake",
+      "Recognizing hype-driven development vs boring technology that works",
+      "Structured evaluation framework (proof of concept, ecosystem maturity, exit strategy)"
+    ],
+    "anchors": {
+      "0": "Claims every technology choice they ever made was flawless and blames failures on tools or libraries.",
+      "1": "Mentions a tool they disliked, but cannot articulate why it was an inappropriate fit for that specific problem.",
+      "2": "Explains why the tool failed (e.g. poor documentation or frequent breaking changes), but lesson learned remains shallow.",
+      "3": "Thoughtfully analyzes why the tool failed (e.g. complex state library, immature ORM, or over-engineered framework); explains modern evaluation criteria.",
+      "4": "Deep engineering wisdom: references Choose Boring Technology philosophy, outlines Spike/PoC criteria, assesses operational cognitive load, and plans exit strategies."
+    },
+    "rubricNotes": "Unscored reflection. Reward intellectual honesty, architectural humility, and mature technology evaluation."
+  }
+]

@@ -1,0 +1,445 @@
+export const DEVOPS_QUESTIONS = [
+  // ===================== JUNIOR QUESTIONS (1 to 10) =====================
+  {
+    id: 'do-j-intro-ci-cd',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a CI/CD pipeline you configured or maintained. What stages were automated, and what was the average deployment frequency?',
+    followUp: 'What was the most frustrating build or deployment failure you had to troubleshoot in that pipeline?',
+    concepts: [
+      'CI/CD pipeline architecture (lint, unit test, build, integration test, deploy)',
+      'Understanding of deployment environments (staging, production, preview)',
+      'Identifying pipeline bottlenecks and deployment failure modes'
+    ],
+    anchors: {
+      0: 'Cannot describe any continuous integration or deployment process; relies exclusively on manual FTP/SSH file uploads.',
+      1: 'Describes running npm run build manually on a server, lacking understanding of automated CI runners.',
+      2: 'Explains GitHub Actions or GitLab CI setup, but cannot explain how pipeline artifacts or secrets were securely injected.',
+      3: 'Clearly details pipeline stages, automated test gates, container registry pushes, environment promotions, and build time optimizations.',
+      4: 'Deep automation vision: explains pipeline caching strategies, ephemeral preview environments, branch protection rules, and DORA deployment frequency.'
+    },
+    rubricNotes: 'Unscored icebreaker. Look for authentic pipeline ownership, operational awareness, and technical honesty.'
+  },
+  {
+    id: 'do-j-dockerfile-optimization',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'Walk through how Docker image layers work. How do you write a multi-stage Dockerfile that minimizes final image size, avoids root execution, and prevents caching uncompiled assets?',
+    followUp: 'Why should you order package.json / requirements.txt copy steps before copying the rest of your application source code?',
+    concepts: [
+      'Docker layer caching mechanics and order of instructions (COPY vs RUN)',
+      'Multi-stage builds separating build tools/compilers from lightweight runtime base images (Alpine/Distroless)',
+      'Container security: non-root USER directive and minimal attack surface'
+    ],
+    anchors: {
+      0: 'Writes a single-stage Dockerfile with RUN apt-get install build-essential left in the final image, running as root.',
+      1: 'Copies all source code before installing dependencies, invalidating the Docker cache on every trivial code edit.',
+      2: 'Uses multi-stage build, but forgets to set a non-root user or leaves unnecessary development dependencies in production.',
+      3: 'Structures optimized multi-stage build; caches dependency layers before source code; uses minimal distroless/alpine base; enforces non-root USER.',
+      4: 'Mastery of containerization: uses build mounts (--mount=type=cache), optimizes .dockerignore, scans vulnerabilities with Trivy, and signs images.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests container fundamentals, build layer caching, and container security best practices.'
+  },
+  {
+    id: 'do-j-k8s-pod-deployment',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'Explain the relationship between a Kubernetes Pod, ReplicaSet, and Deployment. How does a Deployment handle rolling updates when a new container image is pushed?',
+    followUp: 'What do maxSurge and maxUnavailable parameters control during a Kubernetes rolling update?',
+    concepts: [
+      'Kubernetes hierarchy: Pod (smallest deployable unit), ReplicaSet (pod count controller), Deployment (declarative rollout manager)',
+      'Rolling update lifecycle: creating new ReplicaSet, spinning up new pods, awaiting readiness, terminating old pods',
+      'Rollout control parameters: maxSurge and maxUnavailable preventing downtime'
+    ],
+    anchors: {
+      0: 'Thinks a Pod and a Virtual Machine are identical, or believes pods must be manually restarted to update container images.',
+      1: 'Knows Deployments manage pods, but cannot explain the role of the ReplicaSet or how rolling updates avoid downtime.',
+      2: 'Explains rolling update concept, but cannot explain what happens if a new pod version fails its readiness probe.',
+      3: 'Clearly details Deployment -> ReplicaSet -> Pod abstraction; explains rolling update progression and maxSurge/maxUnavailable bounds.',
+      4: 'Production Kubernetes depth: details readiness/liveness probe interaction, rollout pause/rollback commands, and terminationGracePeriodSeconds hooks.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates foundational Kubernetes abstractions and declarative deployment mechanics.'
+  },
+  {
+    id: 'do-j-linux-troubleshooting',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'A production Linux VM exhibits 100% CPU utilization and unresponsiveness. What command-line utilities (e.g. top, htop, vmstat, netstat/ss, dmesg) do you use to diagnose the culprit?',
+    followUp: 'How do you differentiate between user CPU load (us), system kernel CPU load (sy), and I/O wait (wa)?',
+    concepts: [
+      'Linux performance triage command-line tools (top, htop, ps, vmstat, iostat, ss, lsof)',
+      'CPU utilization breakdown: user space, kernel system space, and I/O wait',
+      'Isolating culprit process, analyzing open file descriptors, and checking kernel logs (dmesg) for OOM kills'
+    ],
+    anchors: {
+      0: 'Suggests immediately rebooting the VM without running any diagnostic commands or collecting logs.',
+      1: 'Runs top, but cannot explain what load average means or how to identify which specific thread or process is consuming CPU.',
+      2: 'Identifies the process PID using top, but does not know how to inspect thread states, I/O wait, or disk contention.',
+      3: 'Systematic Linux triage: uses top/htop to identify process; interprets load average vs core count; explains user vs system vs iowait; checks dmesg/journalctl.',
+      4: 'Systems mastery: uses perf/strace to inspect syscall loops, checks cgroups resource limits, analyzes /proc/meminfo and ss socket buffers.'
+    },
+    rubricNotes: 'Technical scoring guidance. Focuses on Linux diagnostic methodology, core commands, and operating system metrics.'
+  },
+  {
+    id: 'do-j-cloud-networking-vpc',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'Explain the fundamentals of a Virtual Private Cloud (VPC): public subnets, private subnets, NAT gateways, and Security Groups. Why should databases never reside in public subnets?',
+    followUp: 'What is the security difference between a stateful Security Group and a stateless Network Access Control List (NACL)?',
+    concepts: [
+      'VPC network segmentation: public subnets (Internet Gateway attached) vs private subnets (NAT Gateway for outbound only)',
+      'Database isolation in private subnets with no public IPv4 addresses',
+      'Security Groups (stateful, instance-level) vs NACLs (stateless, subnet-level rule evaluation)'
+    ],
+    anchors: {
+      0: 'Places databases in public subnets with 0.0.0.0/0 inbound rules, relying solely on database password protection.',
+      1: 'Knows private subnets are more secure, but cannot explain how a backend in a private subnet downloads OS security patches via NAT.',
+      2: 'Explains public vs private subnets, but cannot differentiate between stateful Security Groups and stateless NACLs.',
+      3: 'Thoroughly details VPC architecture: Internet Gateway for public ingress, NAT Gateway for private egress, private database subnets, and security group chaining.',
+      4: 'Cloud networking depth: designs multi-AZ subnets, explains VPC Peering vs Transit Gateway, VPC Endpoints (PrivateLink) for S3, and flow logs.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates cloud networking topology, perimeter security, and subnet architecture.'
+  },
+  {
+    id: 'do-j-gitops-config',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['project_tradeoffs'],
+    prompt: 'Explain the concept of Infrastructure as Code (IaC) using tools like Terraform or OpenTofu. How does state management prevent configuration drift between environments?',
+    followUp: 'What catastrophe occurs if two engineers run terraform apply simultaneously without remote state locking (e.g. DynamoDB/S3)?',
+    concepts: [
+      'Declarative Infrastructure as Code (IaC) vs manual cloud console configuration',
+      'Terraform state file: mapping real-world cloud resource IDs to code definitions',
+      'State locking, remote backends, and detecting configuration drift'
+    ],
+    anchors: {
+      0: 'Configures cloud infrastructure manually via web console and commits local terraform.tfstate files with cleartext secrets to git.',
+      1: 'Writes basic Terraform resources, but does not understand how the state file works or why remote backends are necessary.',
+      2: 'Uses remote state in S3, but lacks state locking; cannot explain how terraform plan detects out-of-band console changes (drift).',
+      3: 'Clearly articulates declarative IaC advantages; explains state file reconciliation against real cloud APIs, remote locking via DynamoDB, and drift detection.',
+      4: 'Advanced IaC practices: modular architecture, terraform plan in CI with PR comments, sensitive variable encryption, and automated drift alerts.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests Infrastructure as Code discipline, state management, and configuration consistency.'
+  },
+  {
+    id: 'do-j-project-broken-pipeline',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['reliability'],
+    prompt: 'A CI build fails on main due to a flaky integration test, blocking 10 developers from merging their branches. What is your immediate protocol to unblock the team?',
+    followUp: 'How do you ensure the quarantined flaky test is actually investigated and fixed rather than permanently forgotten?',
+    concepts: [
+      'Urgency of unblocking the shared delivery pipeline while maintaining safety',
+      'Protocol: verify failure is not a real regression, quarantine the test, unblock main, file high-priority ticket',
+      'Clear communication with engineering team and tracking test stability'
+    ],
+    anchors: {
+      0: 'Disables all tests on main permanently or tells all 10 developers to stop working for the day.',
+      1: 'Tells developers to keep retrying CI until it passes randomly without investigating the failure.',
+      2: 'Quarantines the test, but fails to notify developers or create a tracked bug ticket to investigate the root cause.',
+      3: 'Fast triage: confirms failure is flaky test; temporarily disables/skips the test with a linked Jira ticket; unblocks main; notifies team in Slack.',
+      4: 'DevOps leadership: establishes automated flaky test tagging, sets up quarantine pipeline, pairs with test owner to isolate race conditions, and tracks pipeline MTTR.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates triage speed, developer empathy, and pragmatic process discipline.'
+  },
+  {
+    id: 'do-j-project-secret-management',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['reliability'],
+    prompt: 'Developers have hardcoded AWS credentials in local configuration files to test code locally. How do you migrate the team to secure secret management (like HashiCorp Vault or AWS Secrets Manager)?',
+    followUp: 'How do you implement local developer workflows without requiring permanent production credentials on developer laptops?',
+    concepts: [
+      'Risks of static credentials and hardcoded keys on local developer machines',
+      'Centralized secrets management (Vault, AWS Secrets Manager, Doppler)',
+      'Local dev ergonomics: short-lived tokens, IAM role assumption, local mocking (LocalStack)'
+    ],
+    anchors: {
+      0: 'Accepts hardcoded keys as long as developers promise not to share them outside the company.',
+      1: 'Demands developers stop testing locally without providing an ergonomic, secure alternative.',
+      2: 'Moves secrets to .env files, but still uses permanent long-lived admin credentials on developer laptops.',
+      3: 'Implements central secret manager; provides CLI tooling for local short-lived IAM role assumption (aws-vault/SSO); rotates all previously exposed keys.',
+      4: 'Comprehensive security transformation: integrates pre-commit secret scanning, uses OIDC for CI/CD runners (eliminating static keys), and conducts educational workshop.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Focuses on security posture improvement, developer ergonomics, and credential hygiene.'
+  },
+  {
+    id: 'do-j-project-cloud-cost-alert',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'Your cloud bill spiked by 40% last month due to unattached EBS volumes and abandoned staging clusters. How do you establish tagging and automated cleanup policies?',
+    followUp: 'How do you prevent automated cleanup scripts from accidentally deleting critical persistent production disks?',
+    concepts: [
+      'Cloud cost optimization (FinOps) and resource sprawl detection',
+      'Mandatory resource tagging (owner, environment, cost-center, expiration-date)',
+      'Automated lifecycle policies with safety safeguards (whitelisting production, dry-run alerts, snapshot before delete)'
+    ],
+    anchors: {
+      0: 'Ignores the bill, claiming cloud infrastructure costs are exclusively finance\'s problem.',
+      1: 'Runs a manual script that immediately deletes all unattached volumes without taking snapshots or notifying teams.',
+      2: 'Deletes orphaned disks manually once, but does not implement tagging enforcement or automated policies to prevent recurrence.',
+      3: 'Implements mandatory tags via AWS Organizations SCP / Terraform; creates automated cleanup tool (e.g. Cloud Custodian) with 7-day Slack warning and pre-delete snapshots.',
+      4: 'FinOps architectural leadership: introduces automated dev environment shutdown on nights/weekends, publishes cost dashboards per team, and establishes budget alerts.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates FinOps discipline, automation safety guardrails, and sustainable cloud governance.'
+  },
+  {
+    id: 'do-j-reflect-automation-mistake',
+    role: 'devops_cloud_engineer',
+    level: 'junior',
+    stage: 'reflection',
+    topics: ['reliability'],
+    prompt: 'Describe an instance where an automated deployment script or cron job had an unintended side effect. What checks or dry-run steps did you implement to safeguard against future runs?',
+    followUp: 'How do you verify whether an automated remediation script is curing a problem or worsening a failure loop?',
+    concepts: [
+      'Honest reflection on automation failures (e.g. unintended file deletion, race conditions, deployment loops)',
+      'Safety guardrails: dry-run mode, confirmation gates, idempotency verification',
+      'Observability and rate limiting for automated scripts'
+    ],
+    anchors: {
+      0: 'Claims their scripts have always executed with 100% perfection and never experienced any bug.',
+      1: 'Recalls an automated script failure, but blames the operating system or cloud provider rather than lack of safeguards.',
+      2: 'Explains what broke, but the preventative fix was merely "be more careful next time" without technical guardrails.',
+      3: 'Articulates the automation flaw clearly; details concrete preventative measures: dry-run flags, blast-radius limits, validation checks, and post-execution alerts.',
+      4: 'Mature systems wisdom: discusses automation runaway prevention, dead-man switches, idempotency testing in staging, and defensive exit-on-error (set -euo pipefail).'
+    },
+    rubricNotes: 'Unscored reflection. Reward vulnerability, engineering humility, and defensive automation principles.'
+  },
+
+  // ===================== INTERMEDIATE QUESTIONS (11 to 20) =====================
+  {
+    id: 'do-i-intro-sre-philosophy',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'In your experience, what is the core difference between traditional system administration and modern Site Reliability Engineering (SRE)? How do you promote blameless post-mortems?',
+    followUp: 'How do you measure and limit Toil (manual, repetitive, automatable operational work) so engineers can focus on engineering projects?',
+    concepts: [
+      'SRE as software engineering applied to operations (treating operations as a software problem)',
+      'Blameless culture: focusing on systemic vulnerabilities and safeguards rather than individual human error',
+      'Toil management: capping manual operations at 50% and automating repetitive tasks'
+    ],
+    anchors: {
+      0: 'Thinks SRE is just a rebranding of 24/7 on-call system administration with no difference in engineering approach.',
+      1: 'Advocates SRE concepts, but in practice blames individuals who make typos during outages.',
+      2: 'Defines SRE and blameless post-mortems accurately, but cannot explain how to identify or quantify toil.',
+      3: 'Articulates SRE tenets: software solutions for operational scale, error budgets, blameless root-cause analysis, and toil reduction tracking.',
+      4: 'Transformational SRE leadership: establishes organizational blameless review templates, tracks action item completion rate, and calculates toil metrics.'
+    },
+    rubricNotes: 'Unscored icebreaker. Look for cultural maturity, SRE philosophy, and systems-level accountability.'
+  },
+  {
+    id: 'do-i-k8s-ingress-hpa',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'How does Kubernetes Horizontal Pod Autoscaler (HPA) scale pods based on custom metrics? How do you tune readiness probes and preStop lifecycle hooks to achieve zero-downtime rolling deploys?',
+    followUp: 'Why do Kubernetes services sometimes drop connections during pod termination even when a readiness probe passes, and how does a preStop sleep fix it?',
+    concepts: [
+      'Horizontal Pod Autoscaler (HPA) with Prometheus Custom Metrics API (e.g. queue depth, HTTP QPS)',
+      'Zero-downtime rollout coordination: Readiness probes, SIGTERM propagation, preStop hook delay',
+      'Race condition between kube-proxy endpoint removal and container termination'
+    ],
+    anchors: {
+      0: 'Scales solely on basic CPU metrics and omits readiness probes, causing client traffic to hit unstarted application containers.',
+      1: 'Configures readiness probes, but cannot explain why clients receive 502 Bad Gateway errors during rolling updates.',
+      2: 'Uses HPA with custom metrics, but does not understand why a preStop sleep hook is needed to allow iptables/IPVS rule propagation.',
+      3: 'Details HPA custom metric adapter; configures readiness probes; explains that preStop sleep gives kube-proxy time to remove endpoints before container SIGTERM.',
+      4: 'Kubernetes internals mastery: explains terminationGracePeriodSeconds, ingress controller connection draining, HPA scale-down stabilization windows, and KEDA event-driven autoscaling.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests advanced Kubernetes deployment lifecycle, traffic draining, and autoscaling.'
+  },
+  {
+    id: 'do-i-observability-prometheus',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'Design an observability architecture using metrics (Prometheus/Grafana), logs (Fluentd/Loki/ELK), and distributed tracing (OpenTelemetry/Jaeger). What alerting threshold rules avoid alert fatigue?',
+    followUp: 'How do you prevent high-cardinality labels (like user_id or IP address) from crashing a Prometheus Time Series Database (TSDB)?',
+    concepts: [
+      'Three pillars of observability: metrics (aggregatable), logs (discrete events), traces (request flow across boundaries)',
+      'High cardinality hazards in time-series databases and proper metric label design',
+      'Alert design: symptom-based / SLO-based alerting vs noisy component-level metric alerts'
+    ],
+    anchors: {
+      0: 'Adds user_id as a Prometheus metric label and sets up paging alerts for every single CPU spike above 70%.',
+      1: 'Collects logs and metrics, but has no distributed tracing and cannot explain how to correlate a log message with a trace span.',
+      2: 'Understands high cardinality risks, but sets up hundreds of brittle alerts that wake up on-call engineers for non-actionable warnings.',
+      3: 'Designs integrated OpenTelemetry pipeline; enforces low-cardinality metric labels; routes detailed context to logs/traces; designs symptom-based alerts tied to SLOs.',
+      4: 'Senior observability architect: configures adaptive trace sampling, manages TSDB storage retention tiers, implements multi-window error burn rate alerting, and builds Grafana runbooks.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates full-stack observability architecture, telemetry trade-offs, and alert fatigue mitigation.'
+  },
+  {
+    id: 'do-i-terraform-state-locking',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'In a team of 20 engineers deploying multi-environment cloud infrastructure, how do you handle remote Terraform state locking, module reusability, and blast radius isolation?',
+    followUp: 'Why is keeping all company infrastructure in a single monolithic Terraform state file considered an extreme operational hazard?',
+    concepts: [
+      'State file decomposition: isolating by environment (dev/stage/prod) and layer (network, compute, data)',
+      'Remote state locking (S3 + DynamoDB, Terraform Cloud) and state access security',
+      'Reusable versioned modules and minimizing blast radius of accidental destroys'
+    ],
+    anchors: {
+      0: 'Maintains all environments and services in a single massive Terraform state file, running applies from local developer terminals.',
+      1: 'Uses remote S3 state, but shares one state file across dev and prod, risking production deletion during dev testing.',
+      2: 'Splits state by environment, but cannot explain how shared resources (like VPC IDs) are securely referenced across separate states.',
+      3: 'Architects isolated state boundaries (layered by network, database, app tiers); uses terraform_remote_state / SSM parameters; enforces automated CI execution.',
+      4: 'Enterprise platform engineering: publishes semantic-versioned private registry modules, integrates policy-as-code (OPA/Sentinel), and plans automated drift remediation.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates enterprise Infrastructure as Code architecture, blast radius control, and governance.'
+  },
+  {
+    id: 'do-i-zero-downtime-deployments',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'Compare blue-green deployments with canary release strategies. How do service meshes (like Istio or Linkerd) or ingress controllers route traffic percentages and detect error anomalies?',
+    followUp: 'If a canary deployment receiving 5% traffic begins returning 5xx errors, how does automated progressive delivery (e.g. Argo Rollouts or Flagger) roll back?',
+    concepts: [
+      'Blue-Green deployment (instant switchover with complete duplicate environment) vs Canary deployment (gradual percentage shift)',
+      'Traffic routing mechanisms: weighted ingress rules, service mesh virtual services, header-based routing',
+      'Automated progressive delivery: metric analysis (error rate, p99 latency) triggering automated rollback'
+    ],
+    anchors: {
+      0: 'Thinks zero-downtime deployment means simply deploying at midnight and hoping the server restarts quickly.',
+      1: 'Understands Blue-Green deployment, but cannot explain how Canary releases test real production traffic with minimal blast radius.',
+      2: 'Explains weighted traffic splitting, but has no mechanism for automatic rollback if the canary encounters errors.',
+      3: 'Compares Blue-Green vs Canary trade-offs; details weighted traffic splitting via Istio/ingress; configures metric queries for automated rollback.',
+      4: 'Progressive delivery expertise: configures Argo Rollouts with Prometheus metrics analysis, dark launches via feature flags, and handles backward-compatible database states.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests continuous delivery pipelines, advanced routing topologies, and automated canary analysis.'
+  },
+  {
+    id: 'do-i-cloud-security-iam',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'How do you enforce the principle of least privilege using IAM roles, service accounts (IRSA in Kubernetes), and temporary token federation instead of long-lived access keys?',
+    followUp: 'How do you detect and automatically revoke an AWS IAM access key that has been inactive for 90 days?',
+    concepts: [
+      'IAM Least Privilege: explicit resource ARNs, condition keys, action scoping instead of AdministratorAccess / * wildcard policies',
+      'IAM Roles for Service Accounts (IRSA) / Workload Identity: short-lived OIDC tokens projected into Kubernetes pods',
+      'Automated credential rotation and auditing inactive keys'
+    ],
+    anchors: {
+      0: 'Attaches AdministratorAccess or *:* policies to EC2 instances and pods for convenience.',
+      1: 'Creates IAM users with permanent static access keys for every service, storing them in Kubernetes secrets.',
+      2: 'Uses IAM roles, but cannot explain how OIDC federation allows a Kubernetes service account to assume an AWS IAM role.',
+      3: 'Implements IRSA / Workload Identity with minimal scoped policies; eliminates static keys; explains OIDC token exchange and assume-role conditions.',
+      4: 'Cloud security architecture: enforces Permission Boundaries, SCPs across AWS Organizations, automated Security Hub / GuardDuty findings remediation, and IAM Access Analyzer.'
+    },
+    rubricNotes: 'Technical scoring guidance. Emphasizes modern cloud identity, IAM best practices, and workload identity federation.'
+  },
+  {
+    id: 'do-i-project-chaos-engineering',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['reliability'],
+    prompt: 'You propose introducing chaos engineering (e.g. terminating random pods in production staging). Skeptical engineering managers worry it will cause downtime. How do you structure a controlled game day?',
+    followUp: 'What steady-state hypothesis and abort criteria must be established before running a chaos experiment?',
+    concepts: [
+      'Chaos Engineering principles: verifying system resilience under simulated failure in controlled environments',
+      'Defining a steady-state hypothesis (e.g. user error rate remains < 0.1% while worker nodes crash)',
+      'Safety boundaries: blast radius containment, automated experiment abort triggers, stakeholder buy-in'
+    ],
+    anchors: {
+      0: 'Wants to unleash chaotic outages directly in production without informing anyone, viewing downtime as a badge of honor.',
+      1: 'Abandons the chaos engineering idea immediately when managers express the slightest hesitation.',
+      2: 'Proposes chaos experiments, but defines no steady-state hypothesis or automated rollback mechanism.',
+      3: 'Collaborative strategy: defines steady-state hypothesis in staging first; runs structured GameDay with kill-switch abort; demonstrates value by proving recovery.',
+      4: 'Senior reliability leadership: establishes Chaos GameDay runbooks, tests non-obvious failures (DNS latency, packet loss, AZ loss), and shares executive learnings.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates resilience testing advocacy, risk containment, and cross-functional leadership.'
+  },
+  {
+    id: 'do-i-project-major-outage',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['reliability'],
+    prompt: 'A primary cloud region suffers a complete fiber outage. Walk through your incident commander role: communication channels, stakeholder updates, and coordinated disaster failover.',
+    followUp: 'How do you prevent multiple engineers from executing conflicting commands simultaneously during a high-stress crisis?',
+    concepts: [
+      'Incident Command System (ICS): Incident Commander, Operations Lead, Communications Lead roles',
+      'Maintaining clear, periodic customer and stakeholder status updates during major outages',
+      'Orderly execution of disaster recovery runbooks without panic or conflicting commands'
+    ],
+    anchors: {
+      0: 'Panics, allows 15 engineers to type random commands simultaneously, and posts conflicting updates to customers on Twitter.',
+      1: 'Focuses entirely on fixing the issue, leaving leadership and customers completely in the dark for 4 hours.',
+      2: 'Executes failover runbook, but fails to designate clear operational roles, resulting in duplicate conflicting efforts.',
+      3: 'Takes charge as Incident Commander: delegates technical leads, establishes single comms channel, posts updates every 30 mins, executes tested DR runbook.',
+      4: 'Exemplary incident command: demonstrates psychological safety under pressure, coordinates DNS switchover, monitors secondary region saturation, and conducts post-incident review.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Tests crisis leadership, incident command discipline, and executive communication.'
+  },
+  {
+    id: 'do-i-project-developer-platform',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'Engineering leadership wants to establish an Internal Developer Platform (IDP) to offer self-service environments to 100+ engineers. How do you balance governance with developer autonomy?',
+    followUp: 'How do you measure whether the developer platform is actually improving developer velocity or just adding another layer of bureaucracy?',
+    concepts: [
+      'Platform Engineering philosophy: product mindset, golden paths, self-service developer portals (Backstage)',
+      'Balancing guardrails with autonomy (preventing developers from being blocked by DevOps tickets)',
+      'Metrics: lead time for changes, deployment frequency, developer satisfaction surveys (SPACE framework)'
+    ],
+    anchors: {
+      0: 'Builds a rigid platform that forces developers to file tickets for every database change or environment creation.',
+      1: 'Gives all 100 developers raw cloud admin access with zero guardrails, leading to massive security holes and cost overruns.',
+      2: 'Deploys a portal, but does not consult product engineering teams, resulting in zero internal adoption.',
+      3: 'Treats the platform as an internal product: creates Golden Paths for standard services, self-service ephemeral environments, and tracks lead time metrics.',
+      4: 'Strategic platform architect: establishes developer advisory group, incorporates automated security guardrails, implements service catalogs with compliance scorecards.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates platform engineering vision, developer experience (DevEx), and governance.'
+  },
+  {
+    id: 'do-i-reflect-postmortem-learning',
+    role: 'devops_cloud_engineer',
+    level: 'intermediate',
+    stage: 'reflection',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a post-mortem review you led where the initial assumption about the root cause was proven wrong upon deeper investigation. What changed in your incident investigation methodology?',
+    followUp: 'Why is stopping an incident investigation at "human error" considered a failure of root cause analysis?',
+    concepts: [
+      'Moving past superficial symptoms to systemic root causes (Five Whys methodology)',
+      'Human error as a symptom of flawed system design rather than a root cause',
+      'Refining telemetry, runbooks, and automated guardrails based on counter-intuitive learnings'
+    ],
+    anchors: {
+      0: 'Believes post-mortems are for finding who is at fault and disciplining the person who made the mistake.',
+      1: 'Describes a post-mortem, but stopped the investigation at "the engineer typed the wrong command."',
+      2: 'Discovered the true root cause, but implemented no systemic automated safeguard to prevent the same error.',
+      3: 'Clearly details how initial assumptions were debunked by log/trace telemetry; explains why the system allowed the mistake; implements systemic guardrails.',
+      4: 'Profound SRE wisdom: discusses cognitive biases in incident analysis, safety culture, Swiss Cheese model of accident causation, and continuous learning.'
+    },
+    rubricNotes: 'Unscored reflection. Reward intellectual honesty, deep understanding of human factors, and systemic thinking.'
+  }
+];

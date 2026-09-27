@@ -12,6 +12,8 @@
     "verify:profiles": "node scripts/verify-profiles.js",
     "verify:sessions": "node scripts/verify-sessions.js",
     "validate:bank": "node scripts/validate-question-bank.js",
+    "validate:multi-role": "node scripts/validate-multi-role-bank.js",
+    "build:multi-role": "node scripts/build-multi-role-migration.js",
     "verify:ai": "node scripts/smoke-ai-providers.js"
   },
   "dependencies": {

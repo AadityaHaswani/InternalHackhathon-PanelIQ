@@ -31,9 +31,22 @@ export function InterviewReplayPage() {
   const [error, setError] = useState(null);
   const [retryingAnswerId, setRetryingAnswerId] = useState(null);
 
+  const ROLE_LABELS = {
+    backend_developer: 'Backend Developer',
+    frontend_engineer: 'Frontend Engineer',
+    fullstack_engineer: 'Full Stack Engineer',
+    system_design_engineer: 'System Design Engineer',
+    devops_cloud_engineer: 'DevOps / Cloud Engineer',
+    data_engineer: 'Data Engineer',
+    qa_automation_engineer: 'QA / Automation Engineer',
+  };
+
+  const formatRole = (r) => (r ? (ROLE_LABELS[r] || r.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())) : 'Technical');
+
   const fetchReplay = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setReplay(null);
 
     try {
       // Backend contract: GET /api/v1/sessions/:id/replay
@@ -131,12 +144,17 @@ export function InterviewReplayPage() {
       </div>
 
       <PageHeader
-        title="Interview Replay & Answer Log"
+        title={`${formatRole(replay?.profile?.targetRole)} Interview Replay & Answer Log`}
         description="Immutable record of questions presented by the panel and your submitted technical answers."
         actions={
-          <Badge variant={replay?.status === 'completed' ? 'reviewed' : 'pending'}>
-            {replay?.status === 'completed' ? 'Completed Session' : 'Active Session'}
-          </Badge>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+              {sessionId.substring(0, 8)}...
+            </span>
+            <Badge variant={replay?.status === 'completed' ? 'reviewed' : 'pending'}>
+              {replay?.status === 'completed' ? 'Completed Session' : 'Active Session'}
+            </Badge>
+          </div>
         }
       />
 

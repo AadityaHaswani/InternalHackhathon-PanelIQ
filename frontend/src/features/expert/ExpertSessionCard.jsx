@@ -83,15 +83,29 @@ export function ExpertSessionCard({ assignment }) {
                   margin: 0,
                 }}
               >
-                {candidate.name || 'Alex Chen'}
+                {candidate.displayName || candidate.name || 'Candidate'}
               </h3>
               <Badge variant="accent" style={{ fontSize: '10px' }}>
-                {candidate.level || 'Junior'}
+                {candidate.level || candidate.experienceLevel || 'Junior'}
               </Badge>
             </div>
 
             <div style={{ fontSize: '12px', color: 'var(--color-text-muted, #8C857B)', marginTop: '2px' }}>
-              Target Role: <span style={{ color: 'var(--color-text-secondary, #5E5953)', fontWeight: 500 }}>{candidate.role || 'Backend Developer'}</span> • {candidate.email}
+              Target Role: <span style={{ color: 'var(--color-text-secondary, #5E5953)', fontWeight: 500 }}>
+                {(() => {
+                  const roleLabels = {
+                    backend_developer: 'Backend Developer',
+                    frontend_engineer: 'Frontend Engineer',
+                    fullstack_engineer: 'Full Stack Engineer',
+                    system_design_engineer: 'System Design Engineer',
+                    devops_cloud_engineer: 'DevOps / Cloud Engineer',
+                    data_engineer: 'Data Engineer',
+                    qa_automation_engineer: 'QA / Automation Engineer',
+                  };
+                  const r = candidate.targetRole || candidate.role;
+                  return r ? (roleLabels[r] || r.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())) : 'Technical Interview';
+                })()}
+              </span> {candidate.email ? `• ${candidate.email}` : ''}
             </div>
           </div>
         </div>

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "e0000000-0000-0000-0000-000000000001",
+    "displayName": "Dr. Priya Sharma",
+    "email": "priya.sharma@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "system_design_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Distributed Systems & Scalability Architecture"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000002",
+    "displayName": "Rahul Mehta",
+    "email": "rahul.mehta@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "backend_developer",
+    "experienceLevel": "intermediate",
+    "specialization": "High-Throughput APIs & Database Engineering"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000003",
+    "displayName": "Ananya Kulkarni",
+    "email": "ananya.kulkarni@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "frontend_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Modern Frontend Architecture & State Machines"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000004",
+    "displayName": "Rohan Desai",
+    "email": "rohan.desai@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "full_stack_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "End-to-End Web Systems & Cross-Tier Security"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000005",
+    "displayName": "Neha Iyer",
+    "email": "neha.iyer@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "data_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Large-Scale Batch/Streaming & Lakehouse Modeling"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000006",
+    "displayName": "Arjun Nair",
+    "email": "arjun.nair@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "devops_cloud_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Kubernetes Platform Reliability & Cloud Native SRE"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000007",
+    "displayName": "Sneha Joshi",
+    "email": "sneha.joshi@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "qa_automation_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Test Architecture, E2E Automation & Quality Gates"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000008",
+    "displayName": "Vikram Shah",
+    "email": "vikram.shah@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "system_design_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Resilient Microservices & Disaster Recovery"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000009",
+    "displayName": "Kavita Raman",
+    "email": "kavita.raman@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "frontend_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Core Web Vitals, Rendering Performance & Design Systems"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000010",
+    "displayName": "Amitabh Sen",
+    "email": "amitabh.sen@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "full_stack_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Event-Driven Full Stack Systems & GraphQL/REST APIs"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000011",
+    "displayName": "Meera Nambiar",
+    "email": "meera.nambiar@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "data_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Distributed SQL Engines, Spark & Data Warehousing"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000012",
+    "displayName": "Suresh Pillai",
+    "email": "suresh.pillai@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "devops_cloud_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Infrastructure as Code, CI/CD Security & Observability"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000013",
+    "displayName": "Divya Agarwal",
+    "email": "divya.agarwal@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "qa_automation_engineer",
+    "experienceLevel": "intermediate",
+    "specialization": "Performance Testing, Load Simulation & Contract Testing"
+  },
+  {
+    "id": "e0000000-0000-0000-0000-000000000014",
+    "displayName": "Rajesh Venkat",
+    "email": "rajesh.venkat@paneliq.test",
+    "role": "evaluator",
+    "targetRole": "backend_developer",
+    "experienceLevel": "intermediate",
+    "specialization": "Distributed Consensus & High-Concurrency Systems"
+  }
+]

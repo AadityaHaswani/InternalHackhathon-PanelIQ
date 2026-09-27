@@ -1,0 +1,445 @@
+export const SYSTEM_DESIGN_QUESTIONS = [
+  // ===================== JUNIOR QUESTIONS (1 to 10) =====================
+  {
+    id: 'sd-j-intro-scale',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a system you designed or studied where handling increasing traffic or storage required scaling beyond a single server. What was the first bottleneck?',
+    followUp: 'Did that bottleneck manifest in CPU utilization, memory exhaustion, disk I/O, or network bandwidth?',
+    concepts: [
+      'Understanding system resource constraints (CPU, RAM, Disk I/O, Network)',
+      'Identifying single-node bottlenecks and vertical scaling limits',
+      'Initial steps to scale outward (stateless compute vs stateful data)'
+    ],
+    anchors: {
+      0: 'Cannot describe any system or claims a single modest server can handle unlimited users.',
+      1: 'Describes a system at a very high level without identifying where bottlenecks actually occurred.',
+      2: 'Identifies database load as the issue, but cannot explain how to measure or diagnose whether CPU, RAM, or disk I/O was saturated.',
+      3: 'Clearly identifies the bottleneck (e.g. database connection exhaustion or disk IOPS); explains metrics used and how the architecture was adapted.',
+      4: 'Deep systems intuition: articulates queuing theory, telemetry instrumentation, vertical vs horizontal scaling trade-offs, and headroom planning.'
+    },
+    rubricNotes: 'Unscored icebreaker. Look for authentic systems intuition, metric awareness, and clear technical communication.'
+  },
+  {
+    id: 'sd-j-horizontal-vs-vertical',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'Explain the difference between vertical scaling and horizontal scaling for database and application tiers. What are the practical limits and failure modes of each?',
+    followUp: 'Why is horizontal scaling straightforward for stateless web servers but complex for stateful relational databases?',
+    concepts: [
+      'Vertical scaling (scale-up) limits: hardware ceiling, cost curve, downtime for upgrades',
+      'Horizontal scaling (scale-out) requirements: load balancers, stateless servers, distributed state',
+      'Stateful data synchronization challenges (replication lag, split-brain, consistency)'
+    ],
+    anchors: {
+      0: 'Confuses horizontal and vertical scaling or thinks databases scale horizontally just as easily as web servers.',
+      1: 'Defines scale-up vs scale-out accurately, but cannot explain any architectural prerequisites for horizontal scaling.',
+      2: 'Explains adding more servers behind a load balancer, but does not understand how session state prevents horizontal scaling.',
+      3: 'Articulates cost/hardware limits of vertical scaling; explains stateless compute tier horizontal scaling and stateful DB clustering challenges.',
+      4: 'Exemplary architectural understanding: details Amdahl\'s Law, distributed consensus overhead, sharding complexity, and elastic auto-scaling triggers.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests core scaling primitives and understanding of stateful vs stateless components.'
+  },
+  {
+    id: 'sd-j-load-balancing-basics',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'How does a Layer 4 versus Layer 7 load balancer distribute traffic across web instances? What health check mechanisms ensure traffic is not sent to a crashed server?',
+    followUp: 'What is the risk of a simple TCP ping health check compared to a deep HTTP health check endpoint like /health/ready?',
+    concepts: [
+      'Layer 4 (Transport/TCP/UDP IP routing) vs Layer 7 (Application/HTTP header, URL path, cookie routing)',
+      'Active health check mechanisms (HTTP status codes, response timeouts, consecutive failure thresholds)',
+      'Shallow vs deep health checks (avoiding cascading database failures during health check storms)'
+    ],
+    anchors: {
+      0: 'Believes load balancers only perform round-robin DNS lookups without server health monitoring.',
+      1: 'Knows load balancers distribute requests, but cannot explain the difference between L4 and L7 routing.',
+      2: 'Explains L4 vs L7 and basic health checks, but cannot explain why a deep database-querying health check can cause server death spirals.',
+      3: 'Clearly contrasts L4 (packet-level, ultra-fast) and L7 (content-aware, TLS termination, cookie affinity); explains shallow vs deep health probes.',
+      4: 'Production mastery: discusses weighted round-robin, least connections, consistent hashing, graceful connection draining, and failover topologies.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates traffic routing fundamentals, protocol layers, and availability health checks.'
+  },
+  {
+    id: 'sd-j-caching-redis-basics',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'When introducing an in-memory cache like Redis in front of a relational database, what caching patterns (cache-aside vs write-through) do you consider, and how do you handle cache misses?',
+    followUp: 'What is Cache Invalidation, and why is it notoriously difficult to keep cache synchronized with the authoritative database?',
+    concepts: [
+      'Cache-aside (read-through) pattern: check cache -> on miss query DB -> write to cache with TTL',
+      'Write-through and write-behind patterns with trade-offs',
+      'Cache invalidation strategies (TTL expiration, explicit purge on write, event-driven invalidation)'
+    ],
+    anchors: {
+      0: 'Believes Redis can completely replace the primary relational database without durability concerns.',
+      1: 'Describes cache-aside conceptually, but does not include a Time-To-Live (TTL), risking permanently stale data.',
+      2: 'Explains cache-aside and TTL, but does not know how to handle updates when database records are modified.',
+      3: 'Coherently explains cache-aside read/write workflows, TTL safety nets, explicit invalidation on updates, and memory eviction policies (LRU).',
+      4: 'Advanced caching design: addresses cache stampede (thundering herd) with mutex locks, cache penetration with bloom filters, and dual-write races.'
+    },
+    rubricNotes: 'Technical scoring guidance. Emphasizes caching patterns, cache-database synchronization, and eviction policies.'
+  },
+  {
+    id: 'sd-j-db-read-replicas',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'A read-heavy web service is bottlenecking on database queries. How do primary-replica database configurations work, and what is replication lag?',
+    followUp: 'How do you handle a Read-Your-Own-Writes issue where a user creates a post and is immediately redirected to a feed that reads from a lagging replica?',
+    concepts: [
+      'Primary (read-write) and read-only replica topology',
+      'Asynchronous replication mechanics and network replication lag',
+      'Read-your-own-writes consistency strategies (routing recent writers to primary for N seconds)'
+    ],
+    anchors: {
+      0: 'Thinks replicas handle write transactions equally without any coordination or conflict resolution.',
+      1: 'Explains that writes go to primary and reads go to replicas, but is unaware of replication lag.',
+      2: 'Identifies replication lag, but cannot suggest how to prevent a user from seeing stale data immediately after their own write.',
+      3: 'Explains asynchronous binary log replication, lag causes, and routes recent user writes to primary for a brief window while reading older feeds from replicas.',
+      4: 'Deep database architecture: discusses synchronous vs asynchronous replication trade-offs, replica promotion during primary failover, and connection pooling.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests database scaling topologies, asynchronous replication, and read-after-write consistency.'
+  },
+  {
+    id: 'sd-j-cdn-static-assets',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'How does a Content Delivery Network (CDN) reduce latency for global users, and what HTTP headers control cache expiration and edge invalidation?',
+    followUp: 'Why is asset fingerprinting (e.g. bundle.a8f2c.js with Cache-Control: max-age=31536000, immutable) superior to relying on short TTL cache invalidations?',
+    concepts: [
+      'CDN Points of Presence (PoPs) and terminating requests close to the user edge',
+      'HTTP Cache-Control directives: public, max-age, s-maxage, immutable, no-cache',
+      'Content-addressed hashing (fingerprinting) for instant, risk-free cache busting'
+    ],
+    anchors: {
+      0: 'Cannot explain what a CDN is or thinks it is just a cloud storage bucket.',
+      1: 'Knows CDNs cache assets near users, but cannot name or explain Cache-Control HTTP headers.',
+      2: 'Explains max-age headers, but suggests clearing the entire CDN cache manually on every release.',
+      3: 'Details CDN edge caching, DNS Geo-routing, Cache-Control: s-maxage vs max-age, and asset content-hash fingerprinting.',
+      4: 'Industry-level edge engineering: explains stale-while-revalidate at CDN edge, purge APIs vs fingerprinting, and dynamic edge computing (Cloudflare Workers).'
+    },
+    rubricNotes: 'Technical scoring guidance. Focuses on edge caching, HTTP caching standards, and asset distribution.'
+  },
+  {
+    id: 'sd-j-project-spof',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['reliability'],
+    prompt: 'Reviewing an architecture diagram, you notice that all services depend on a single shared MySQL instance without backups or failover. How do you communicate this Single Point of Failure (SPOF) to management?',
+    followUp: 'What phased remediation plan (automated snapshots, replica failover, multi-AZ) would you propose?',
+    concepts: [
+      'Identifying Single Points of Failure (SPOF) and quantifying business downtime cost',
+      'Phased remediation: automated backups, read replica, Multi-AZ automated failover',
+      'Constructive, risk-based executive communication without hyperbole'
+    ],
+    anchors: {
+      0: 'Ignores the SPOF, assuming cloud providers automatically handle hardware failure without configuration.',
+      1: 'Panics and demands an immediate complete multi-region migration without assessing cost or downtime impact.',
+      2: 'Identifies the SPOF and suggests automated backups, but does not provide an actionable roadmap to stakeholders.',
+      3: 'Quantifies downtime risk and data loss; proposes phased mitigation: (1) automated point-in-time recovery, (2) multi-AZ standby replica, (3) tested failover runbook.',
+      4: 'Strategic engineering leadership: maps business RTO/RPO expectations, estimates infrastructure cost deltas, and aligns engineering resources smoothly.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates architectural risk identification, stakeholder translation, and phased remediation.'
+  },
+  {
+    id: 'sd-j-project-capacity-planning',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'A product team anticipates a 10x traffic spike during a holiday marketing campaign. What steps do you take to calculate expected QPS, bandwidth, and compute requirements?',
+    followUp: 'How do you incorporate a safety margin (headroom) and what automated load testing would you perform before the event?',
+    concepts: [
+      'Back-of-the-envelope estimation (current QPS -> 10x peak QPS, bandwidth, database writes)',
+      'Identifying tier-by-tier capacity bottlenecks (connection limits, CPU, memory, third-party APIs)',
+      'Load testing with synthetic traffic and provisioning safety buffers'
+    ],
+    anchors: {
+      0: 'Suggests waiting for the campaign to start and adding servers only after the website crashes.',
+      1: 'Understands traffic will increase, but cannot perform basic back-of-the-envelope calculations for QPS or database connections.',
+      2: 'Calculates peak QPS, but forgets database connection pool limits or downstream payment gateway constraints.',
+      3: 'Systematic capacity plan: estimates peak read/write QPS, network bandwidth, database IOPS; runs distributed load tests; provisions 30-50% headroom.',
+      4: 'Senior operational planning: coordinates dry-run game days, establishes rate-limit circuit breakers, pre-warms load balancers, and implements feature flags for degradation.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Tests capacity planning rigor, estimation methodology, and proactive risk management.'
+  },
+  {
+    id: 'sd-j-project-cost-vs-scale',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'A team requests over-provisioned multi-region cloud infrastructure for an internal reporting tool with only 50 daily users. How do you advocate for cost-effective sizing without compromising reliability?',
+    followUp: 'What minimal architecture (e.g. single region with automated snapshots and auto-scaling) adequately meets their 99.9% uptime requirement?',
+    concepts: [
+      'Right-sizing infrastructure to actual business requirements and SLA expectations',
+      'Weighing cloud financial cost against real business impact of downtime',
+      'Diplomatic engineering guidance: proposing appropriate architecture with upgrade triggers'
+    ],
+    anchors: {
+      0: 'Blindly approves massive multi-region infrastructure for 50 internal users, wasting organizational capital.',
+      1: 'Rejects the request rudely without explaining why multi-region is unnecessary for their scale.',
+      2: 'Suggests a smaller instance, but cannot articulate why multi-region active-active is overkill for internal reporting.',
+      3: 'Politely reviews usage patterns; shows cost comparison; demonstrates that single-AZ with automated backup meets SLA; defines scale triggers for future expansion.',
+      4: 'FinOps architectural leadership: introduces serverless / scale-to-zero compute (e.g. Cloud Run / Fargate), automated sleep on weekends, and transparent cost attribution.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates cost-benefit pragmatism, FinOps discipline, and technical diplomacy.'
+  },
+  {
+    id: 'sd-j-reflect-architecture-limits',
+    role: 'system_design_engineer',
+    level: 'junior',
+    stage: 'reflection',
+    topics: ['project_tradeoffs'],
+    prompt: 'Reflect on a system design where you initially over-complicated or under-engineered the solution. What would you simplify if you were to design it again from scratch?',
+    followUp: 'What design heuristic (e.g. YAGNI, KISS, latency bounds) do you rely on now to keep designs grounded?',
+    concepts: [
+      'Self-awareness of personal architectural misjudgments (over-engineering or premature optimization)',
+      'Concrete simplicity improvements (e.g. using Postgres instead of 3 specialized databases)',
+      'Pragmatic heuristics for balancing future-proofing with immediate delivery'
+    ],
+    anchors: {
+      0: 'Claims they have never over-engineered or under-engineered any system in their career.',
+      1: 'Recalls an issue, but blames project managers or changing requirements rather than their own technical choices.',
+      2: 'Admits they used an over-complex tool (like microservices or Kafka), but cannot explain what simpler alternative would have worked.',
+      3: 'Reflects honestly on an over-engineered pattern; explains how simpler monolithic/Postgres design would have succeeded faster with less maintenance.',
+      4: 'Deep architectural humility: discusses cognitive burden on team, premature optimization traps, and establishes clear criteria for when complex patterns are truly warranted.'
+    },
+    rubricNotes: 'Unscored reflection. Reward intellectual honesty, engineering self-awareness, and commitment to simplicity.'
+  },
+
+  // ===================== INTERMEDIATE QUESTIONS (11 to 20) =====================
+  {
+    id: 'sd-i-intro-distributed-systems',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'What is the most challenging distributed systems trade-off (e.g. latency vs consistency, or cost vs availability) you have had to evaluate in an actual production design?',
+    followUp: 'How did business requirements dictate which side of the trade-off you had to prioritize?',
+    concepts: [
+      'Real-world distributed systems trade-offs (consistency, latency, availability, partition tolerance, cost)',
+      'Aligning technical trade-offs with business risk tolerance and customer expectations',
+      'Observable trade-off outcomes and telemetry validation'
+    ],
+    anchors: {
+      0: 'Cannot describe any distributed systems trade-off or believes systems can achieve 100% on all dimensions simultaneously.',
+      1: 'Recites CAP theorem textbook definitions without connecting them to an actual production engineering decision.',
+      2: 'Describes choosing between two databases, but focuses only on features rather than distributed system trade-offs.',
+      3: 'Articulates a clear trade-off (e.g. eventual consistency for write throughput vs synchronous replication latency); explains business rationale.',
+      4: 'Mastery of distributed trade-offs: analyzes PACELC theorem, failure domains, degradation tiers, and concrete operational telemetry.'
+    },
+    rubricNotes: 'Unscored icebreaker. Look for distributed systems maturity, trade-off honesty, and business context alignment.'
+  },
+  {
+    id: 'sd-i-cap-theorem-consistency',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'In the context of the CAP theorem and PACELC, explain how strong consistency differs from eventual consistency in a distributed datastore. What are the user-facing consequences during network partitions?',
+    followUp: 'How does the Raft or Paxos consensus algorithm guarantee safety and prevent split-brain during a leader partition?',
+    concepts: [
+      'Linearizable / Strong consistency vs Eventual / Causal consistency',
+      'PACELC theorem (Partition: Availability vs Consistency; Else: Latency vs Consistency)',
+      'Quorum consensus (R + W > N) and split-brain prevention via odd-numbered majorities'
+    ],
+    anchors: {
+      0: 'Thinks the CAP theorem allows choosing Consistency, Availability, and Partition Tolerance all at once in distributed networks.',
+      1: 'Defines CAP theorem basics, but cannot explain what happens to reads and writes when a network partition actually occurs.',
+      2: 'Explains eventual consistency, but cannot explain quorum math (R+W > N) or how split-brain is prevented.',
+      3: 'Deeply explains CP vs AP systems during partitions; details quorum replication; analyzes user-facing impacts (stale reads vs write rejections).',
+      4: 'Principal-level distributed theory: contrasts Linearizability vs Serializability, details Raft term elections/log matching, and explores CRDTs.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests formal distributed systems concepts, consensus algorithms, and consistency models.'
+  },
+  {
+    id: 'sd-i-database-sharding',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'A relational database table exceeds 5 Terabytes and single-node write IOPS is saturated. How do you design a horizontal sharding strategy, choose a shard key, and handle rebalancing?',
+    followUp: 'How does consistent hashing minimize data migration when adding new shards to an active cluster?',
+    concepts: [
+      'Horizontal database sharding principles and write distribution',
+      'Shard key selection criteria (cardinality, query patterns, avoiding celebrity/hotspot keys)',
+      'Cross-shard query penalties, distributed transactions, and consistent hashing rebalancing'
+    ],
+    anchors: {
+      0: 'Recommends adding read replicas to resolve a write-IOPS bottleneck or suggests sharding by random auto-increment ID.',
+      1: 'Knows sharding splits data across databases, but cannot explain how queries route to shards or how to pick a good shard key.',
+      2: 'Selects a shard key (e.g. user_id), but overlooks cross-shard joins and distributed transaction overhead.',
+      3: 'Thoroughly evaluates shard key trade-offs; explains router/coordinator layer, cross-shard fanout mitigation, and consistent hashing virtual nodes.',
+      4: 'Senior data systems mastery: details online resharding with dual-writes and backfill, distributed two-phase commit (2PC) vs Saga patterns, and Vitess/Citus internals.'
+    },
+    rubricNotes: 'Technical scoring guidance. Focuses on horizontal data partitioning, routing, and operational rebalancing.'
+  },
+  {
+    id: 'sd-i-message-queues-async',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'Compare message queues (like RabbitMQ or SQS) with distributed commit logs (like Kafka). When would you choose an event log over a standard message broker for decoupled processing?',
+    followUp: 'How does consumer group partition assignment work in Kafka, and what happens when an individual consumer crashes during processing?',
+    concepts: [
+      'Smart broker / dumb consumer (RabbitMQ/SQS) vs dumb broker / smart consumer log (Kafka)',
+      'Message deletion on ack vs immutable append-only commit log with consumer offsets and replayability',
+      'Partitioning, consumer group rebalancing, and ordering guarantees within a partition'
+    ],
+    anchors: {
+      0: 'Believes Kafka and RabbitMQ are completely interchangeable with identical operational semantics.',
+      1: 'Knows Kafka is faster for large data, but cannot explain the difference between queue message acks and log offset commits.',
+      2: 'Explains commit logs and consumer offsets, but fails to understand ordering limitations across partitions.',
+      3: 'Coherently contrasts ephemeral queueing vs persistent event streaming; details partition-key ordering guarantees, consumer rebalancing, and replayability.',
+      4: 'Expert streaming architecture: articulates exactly-once processing semantics (idempotent producer + transactional commit), head-of-line blocking, and backpressure.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates asynchronous architectures, message queues, and distributed event logs.'
+  },
+  {
+    id: 'sd-i-rate-limiter-distributed',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'Design a distributed rate limiter supporting 100,000 QPS across multi-region API clusters. Compare token bucket versus sliding window log algorithms using Redis clusters.',
+    followUp: 'How do you handle race conditions when multiple concurrent requests update the same user bucket in Redis?',
+    concepts: [
+      'Rate limiting algorithms: Token Bucket, Leaky Bucket, Sliding Window Counter',
+      'Distributed synchronization using Redis: Lua scripts for atomic get-decrement-set',
+      'Multi-region replication latency trade-offs (local in-memory rate limiting with periodic sync vs central Redis)'
+    ],
+    anchors: {
+      0: 'Proposes storing rate limit counters in a relational SQL database without considering 100,000 QPS write load.',
+      1: 'Uses basic Redis GET and SET commands, creating a severe race condition under high concurrency.',
+      2: 'Uses Redis INCR with EXPIRE, but cannot explain why fixed window algorithms permit 2x traffic bursts at window boundaries.',
+      3: 'Implements sliding window counter using Redis sorted sets (ZADD/ZREMRANGEBYSCORE) or atomic Lua script with Token Bucket.',
+      4: 'World-class scaling architecture: addresses multi-region cross-continent latency by using local Token Buckets with asynchronous batch reservation, shadow rate limiting, and DDoS tiering.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests high-throughput distributed algorithms, atomic synchronization, and multi-region trade-offs.'
+  },
+  {
+    id: 'sd-i-distributed-locking',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'How do you implement a safe distributed lock across multiple independent worker nodes? What failure modes occur with simple Redis SETNX locks when network pauses or GC pauses exceed lock TTL?',
+    followUp: 'How do fencing tokens (monotonically increasing version numbers) prevent split-brain writes to shared storage when a lock lease expires unexpectedly?',
+    concepts: [
+      'Distributed lock lease expiration and garbage collection / network pause race conditions',
+      'Limitations of single-instance Redis SETNX locks (Martin Kleppmann\'s Redlock critique)',
+      'Fencing tokens as authoritative storage-level validation for distributed mutually exclusive writes'
+    ],
+    anchors: {
+      0: 'Believes a simple Redis key with TTL is 100% safe for critical financial writes under any network condition.',
+      1: 'Knows locks need TTLs to prevent deadlocks on crash, but cannot explain what happens if a worker pauses longer than the TTL.',
+      2: 'Mentions Redlock or ZooKeeper, but cannot explain how a storage tier verifies that a write comes from the active lock holder.',
+      3: 'Clearly illustrates lock lease expiry during GC pause; explains how fencing tokens passed to the storage engine reject outdated writes.',
+      4: 'Deep distributed consensus mastery: contrasts consensus-backed locks (etcd/ZooKeeper with ephemeral nodes) vs Redis Redlock, analyzing clock drift and formal safety proofs.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests deep understanding of distributed locking vulnerabilities, lease expiry, and fencing tokens.'
+  },
+  {
+    id: 'sd-i-project-sla-sli-slo',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['reliability'],
+    prompt: 'How do you define meaningful SLIs and SLOs for a mission-critical financial ledger service, and how do error budgets dictate whether engineering focuses on features or reliability?',
+    followUp: 'How do you calculate the difference between 99.9% (three nines) and 99.99% (four nines) annual downtime, and what is the cost implication?',
+    concepts: [
+      'SLI (metric), SLO (target), SLA (contractual penalty agreement) framework',
+      'Error budget mechanics: policy-driven feature freezes and reliability sprints when budget burns',
+      'The exponential cost and complexity curve of adding additional nines of availability'
+    ],
+    anchors: {
+      0: 'Thinks SLO and SLA are identical or claims the system should target 100.00% uptime with zero tolerance for failure.',
+      1: 'Defines uptime as an SLI, but cannot explain how to measure API error rate or latency percentiles (p99).',
+      2: 'Calculates downtime minutes for three nines vs four nines, but has no mechanism for error budget policy enforcement.',
+      3: 'Defines precise SLIs (e.g. 99.95% of requests succeed in < 200ms); establishes error budget burn alerts; implements feature freezes when budget exhausted.',
+      4: 'Executive SRE leadership: establishes user-centric SLIs, designs multi-window burn rate alerts, and bridges engineering-product alignment on acceptable risk.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates reliability metrics, operational governance, and SRE policy enforcement.'
+  },
+  {
+    id: 'sd-i-project-disaster-recovery',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['reliability'],
+    prompt: 'Design a Disaster Recovery (DR) plan for an enterprise service. Differentiate between Recovery Point Objective (RPO) and Recovery Time Objective (RTO) across active-passive versus active-active failover.',
+    followUp: 'How do you test your Disaster Recovery plan in production without causing real customer outages?',
+    concepts: [
+      'RPO (maximum acceptable data loss) and RTO (maximum acceptable downtime)',
+      'DR strategies: Backup/Restore, Pilot Light, Warm Standby, Active-Active Multi-Region',
+      'Automated DNS failover, split-brain avoidance, and regular GameDay disaster drills'
+    ],
+    anchors: {
+      0: 'Cannot differentiate RTO from RPO, or believes taking daily backups provides zero RPO.',
+      1: 'Defines RTO and RPO, but advocates active-active multi-region without understanding write conflict resolution or immense cost.',
+      2: 'Proposes Warm Standby with DNS failover, but does not address database replication lag or data loss during sudden primary region loss.',
+      3: 'Thoroughly maps business RPO/RTO to architecture options; explains active-passive failover mechanisms; designs regular non-destructive failover GameDays.',
+      4: 'Enterprise resiliency mastery: details synchronous replication boundaries, automated traffic routing via Anycast/Route53, database promotion runbooks, and disaster automation.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Focuses on disaster recovery planning, business continuity, and failover engineering.'
+  },
+  {
+    id: 'sd-i-project-vendor-lockin',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'Leadership wants to adopt proprietary cloud services (like DynamoDB or Cloud Spanner) for speed to market, while staff engineers fear cloud vendor lock-in. How do you guide the architectural decision?',
+    followUp: 'What architectural abstraction layers (repository patterns, interface boundaries) allow using managed cloud services while keeping exit paths viable?',
+    concepts: [
+      'Pragmatic evaluation of vendor lock-in vs undifferentiated heavy lifting and time-to-market',
+      'Cost of portability abstraction layers vs actual likelihood of cloud migration',
+      'Strategic boundary design (repository pattern, standard data formats) without hamstringing native cloud benefits'
+    ],
+    anchors: {
+      0: 'Dogmatically opposes all proprietary cloud services, insisting on self-hosting open-source databases on bare VMs regardless of team size.',
+      1: 'Believes vendor lock-in is a total myth and embraces proprietary features blindly without evaluating migration difficulty.',
+      2: 'Suggests building an elaborate abstraction layer that limits DynamoDB to simple SQL-like features, getting the worst of both worlds.',
+      3: 'Pragmatic evaluation: weighs operational overhead of self-hosting vs velocity of managed services; abstracts domain layer from data access; defines explicit migration criteria.',
+      4: 'Chief architect perspective: analyzes switching costs vs opportunity costs, evaluates data gravity and egress fees, and defines vendor contractual safeguards.'
+    },
+    rubricNotes: 'Techno-managerial guidance. Evaluates technical governance, cloud strategy, and executive decision-making.'
+  },
+  {
+    id: 'sd-i-reflect-cascading-failure',
+    role: 'system_design_engineer',
+    level: 'intermediate',
+    stage: 'reflection',
+    topics: ['reliability'],
+    prompt: 'Think of a time you observed or studied a cascading failure in a distributed system (e.g. retry storms, cache stamped, or thread pool exhaustion). What architectural safeguards did it teach you?',
+    followUp: 'How do circuit breakers, backpressure, and load shedding stop a minor degradation from escalating into a total platform outage?',
+    concepts: [
+      'Anatomy of a cascading failure (positive feedback loop where failing components overload downstream dependencies)',
+      'Defensive mechanisms: exponential backoff with full jitter, circuit breakers, dead-letter queues, load shedding',
+      'Deep architectural takeaways and designing for graceful degradation'
+    ],
+    anchors: {
+      0: 'Cannot explain cascading failures or assumes systems fail only when hard drives burn out.',
+      1: 'Describes an outage, but thinks simply adding more aggressive retries will fix downstream timeouts.',
+      2: 'Explains circuit breakers conceptually, but cannot explain how retry storms without jitter overwhelm recovering databases.',
+      3: 'Articulates the exact failure feedback loop; explains circuit breaker state transitions (Closed/Open/Half-Open), jittered backoff, and priority load shedding.',
+      4: 'Mastery of resilient systems: discusses bulkhead isolation patterns, concurrency limits via Little\'s Law, automated graceful degradation, and chaos test verification.'
+    },
+    rubricNotes: 'Unscored reflection. Reward systems thinking, failure mode expertise, and defensive architectural instincts.'
+  }
+];

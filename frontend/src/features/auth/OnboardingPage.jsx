@@ -101,6 +101,12 @@ export function OnboardingPage() {
 
   const roleOptions = catalog?.roles?.map((r) => ({ value: r.slug, label: r.label })) || [
     { value: 'backend_developer', label: 'Backend Developer' },
+    { value: 'frontend_engineer', label: 'Frontend Engineer' },
+    { value: 'full_stack_engineer', label: 'Full Stack Engineer' },
+    { value: 'system_design_engineer', label: 'System Design Engineer' },
+    { value: 'devops_cloud_engineer', label: 'DevOps / Cloud Engineer' },
+    { value: 'data_engineer', label: 'Data Engineer' },
+    { value: 'qa_automation_engineer', label: 'QA / Automation Engineer' },
   ];
 
   return (
