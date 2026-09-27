@@ -20,8 +20,8 @@ import { AdminAssignmentsPage } from '../features/admin/AdminAssignmentsPage';
 // Dev 2 Owned Pages
 import { InterviewSetupPage, InterviewRoomPage } from '../features/interview';
 
-// Dev 3 Owned Pages (Preserved from main)
-import { ReportPage } from '../features/reports/ReportPage';
+// Dev 3 Owned Pages
+import { CandidateReportPage, InterviewReplayPage, TargetedRetryPage, ReportPage } from '../features/reports';
 import { ReplayPage } from '../features/replay/ReplayPage';
 import { RetryPage } from '../features/retries/RetryPage';
 import { ExpertDashboard, ExpertSessionPage, QuestionLabPage } from '../features/expert';
@@ -166,13 +166,13 @@ const router = createBrowserRouter([
         ),
       },
 
-      // Dev 3 Routes: Complete Implementation (Preserved from main)
+      // Dev 3 Routes: Evidence-based Candidate Reports, Replays, and Retries
       {
         path: '/app/interviews/:id/report',
         element: (
           <RequireAuth>
             <AppShell>
-              <ReportPage />
+              <CandidateReportPage />
             </AppShell>
           </RequireAuth>
         ),
@@ -182,7 +182,7 @@ const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <AppShell>
-              <ReplayPage />
+              <InterviewReplayPage />
             </AppShell>
           </RequireAuth>
         ),
@@ -192,7 +192,7 @@ const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <AppShell>
-              <RetryPage />
+              <TargetedRetryPage />
             </AppShell>
           </RequireAuth>
         ),
@@ -209,6 +209,16 @@ const router = createBrowserRouter([
       },
       {
         path: '/expert/sessions/:id',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <ExpertSessionPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/expert/sessions/:sessionId',
         element: (
           <RequireAuth>
             <AppShell>

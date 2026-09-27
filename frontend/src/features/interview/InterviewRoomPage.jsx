@@ -271,6 +271,17 @@ export function InterviewRoomPage() {
       // Update session with next turn
       if (updatedSession) {
         setSession(updatedSession);
+        if (updatedSession.status === 'ready_to_complete') {
+          apiClient.post(`/sessions/${sessionId}/complete`, {
+            expectedSessionVersion: updatedSession.version,
+          }).then((cRes) => {
+            if (cRes?.data?.session) {
+              setSession(cRes.data.session);
+            }
+          }).catch((cErr) => {
+            console.warn('[InterviewRoomPage] Auto-complete on submit:', cErr.message);
+          });
+        }
       }
 
       setSubmissionState('saved');
@@ -363,6 +374,17 @@ export function InterviewRoomPage() {
 
       if (updatedSession) {
         setSession(updatedSession);
+        if (updatedSession.status === 'ready_to_complete') {
+          apiClient.post(`/sessions/${sessionId}/complete`, {
+            expectedSessionVersion: updatedSession.version,
+          }).then((cRes) => {
+            if (cRes?.data?.session) {
+              setSession(cRes.data.session);
+            }
+          }).catch((cErr) => {
+            console.warn('[InterviewRoomPage] Auto-complete on skip:', cErr.message);
+          });
+        }
       }
       setSubmissionState('idle');
       setSaveIndicatorState('idle');
@@ -378,6 +400,10 @@ export function InterviewRoomPage() {
   // Complete Interview and Hand Off to Dev 3 Report
   const handleCompleteInterview = async () => {
     if (!session) return;
+    if (session.status === 'completed') {
+      navigate(`/app/interviews/${sessionId}/report`);
+      return;
+    }
     setIsCompleting(true);
 
     if (isUsingFixtures) {

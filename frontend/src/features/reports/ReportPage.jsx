@@ -71,6 +71,7 @@ export function ReportPage() {
   };
 
   useEffect(() => {
+    setReport(null);
     fetchReport();
   }, [id]);
 
@@ -191,7 +192,7 @@ export function ReportPage() {
                 margin: 0,
               }}
             >
-              {candidate.displayName || 'Candidate'} — {candidate.targetRole || 'Backend Developer'}
+              {candidate.displayName || 'Candidate'} — {candidate.targetRole || report.profile?.targetRole || 'Technical Interview'}
             </h1>
             <Badge variant="accent" style={{ textTransform: 'uppercase', fontSize: '11px' }}>
               {candidate.experienceLevel || 'Junior'} Band

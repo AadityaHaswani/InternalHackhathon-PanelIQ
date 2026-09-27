@@ -1,4 +1,5 @@
 import { selectPlan } from './session-plan.js';
+import { isReportReleased } from '../reports/released-reports-store.js';
 
 export class SessionError extends Error {
   constructor(status, code, message, retryable = false) {
@@ -29,7 +30,10 @@ export function databaseData(result) {
     const [status, safeMessage] = databaseErrors[message];
     throw new SessionError(status, message, safeMessage);
   }
-  if (code === '42501' || result.status === 403) throw new SessionError(403, 'SESSION_FORBIDDEN', 'Operation is not permitted');
+  if (code === '42501' || result.status === 403) {
+    console.error('[databaseData error 42501/403]:', result.error);
+    throw new SessionError(403, 'SESSION_FORBIDDEN', 'Operation is not permitted');
+  }
   if (result.status === 401) throw new SessionError(401, 'AUTH_INVALID', 'Invalid or expired access token');
   if (['42P01','42703','PGRST202','PGRST204','PGRST205','PGRST300'].includes(code)) throw new Error('Interview database configuration failure');
   if (result.status === 0 || result.status === 408 || result.status === 429 || result.status >= 500) {
@@ -81,11 +85,43 @@ export async function listSessions(client, userId, { limit, offset }) {
   const rows = databaseData(await client.from('sessions')
     .select('id,profile_snapshot,status,current_position,version,created_at,completed_at')
     .eq('user_id', userId).order('created_at', { ascending: false }).order('id')
-    .range(offset, offset + limit));
+    .range(offset, offset + limit)) || [];
+
+  const completedIds = rows.filter((r) => r.status === 'completed').map((r) => r.id);
+  let releasedSet = new Set();
+  if (completedIds.length > 0) {
+    try {
+      const revsRes = await client
+        .from('report_revisions')
+        .select('session_id')
+        .in('session_id', completedIds)
+        .eq('status', 'released');
+      const revs = databaseData(revsRes) || [];
+      if (Array.isArray(revs)) {
+        releasedSet = new Set(revs.map((r) => r.session_id));
+      }
+    } catch {
+      // Safe fallback
+    }
+    for (const id of completedIds) {
+      if (isReportReleased(id)) {
+        releasedSet.add(id);
+      }
+    }
+  }
+
   return {
-    sessions: rows.slice(0, limit).map((row) => ({ id: row.id, profile: row.profile_snapshot,
-      status: row.status, version: row.version, answeredCount: row.current_position - 1,
-      totalTurns: 8, createdAt: row.created_at, completedAt: row.completed_at })),
+    sessions: rows.slice(0, limit).map((row) => ({
+      id: row.id,
+      profile: row.profile_snapshot,
+      status: row.status,
+      isReportReleased: releasedSet.has(row.id),
+      version: row.version,
+      answeredCount: row.current_position - 1,
+      totalTurns: 8,
+      createdAt: row.created_at,
+      completedAt: row.completed_at,
+    })),
     nextOffset: rows.length > limit ? offset + limit : null,
   };
 }

@@ -1,0 +1,445 @@
+export const QA_AUTOMATION_QUESTIONS = [
+  // ===================== JUNIOR QUESTIONS (1 to 10) =====================
+  {
+    id: 'qa-j-intro-testing',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a software feature or application you were responsible for testing. What was your strategy for breaking down test requirements and ensuring coverage across happy paths and edge cases?',
+    followUp: 'What was the most subtle or tricky defect you uncovered during that testing effort?',
+    concepts: [
+      'Test planning and requirements analysis: user stories, acceptance criteria, and edge-case enumeration',
+      'Test case design: happy paths, negative tests, boundary cases, and error recovery',
+      'Defect reporting and collaboration with software engineers and product managers'
+    ],
+    anchors: {
+      0: 'Cannot articulate a structured testing strategy; clicks around randomly without test cases or documented criteria.',
+      1: 'Only tests basic happy paths and accepts whatever the developer says works without verifying failure cases.',
+      2: 'Explains test cases for happy path and common errors, but lacks systematic approach to edge cases or automated coverage.',
+      3: 'Clearly details structured approach: analyzes acceptance criteria, identifies negative/boundary scenarios, documents test matrices, and logs actionable defects with reproduction steps.',
+      4: 'Quality engineering excellence: explains risk-based testing, automated regression matrix, pairwise test generation, and partnering with engineers early in sprint refinement.'
+    },
+    rubricNotes: 'Unscored icebreaker. Look for authentic quality advocacy, systematic analytical thinking, and clear technical communication.'
+  },
+  {
+    id: 'qa-j-test-pyramid-basics',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'Explain the classic Test Pyramid (Unit, Integration, End-to-End). Why is having too many end-to-end UI tests an anti-pattern (often called an inverted pyramid or ice cream cone), and what are the cost and execution speed trade-offs across layers?',
+    followUp: 'How do you determine whether a given bug or scenario should be tested at the unit level, API integration level, or browser UI level?',
+    concepts: [
+      'Test Pyramid layers: Unit (fast, isolated, cheap), Integration (component interaction), End-to-End (user journey, slow, brittle)',
+      'The "Ice Cream Cone" anti-pattern: slow test execution, high maintenance cost, frequent flakiness, and delayed developer feedback',
+      'Pushing tests down the pyramid: testing business logic at unit/API layer while reserving UI tests for critical user journeys'
+    ],
+    anchors: {
+      0: 'Believes all testing should be automated through the browser UI and that unit tests are unnecessary or obsolete.',
+      1: 'Recognizes the pyramid shape but cannot explain why UI tests are slower, more expensive, or more brittle than unit/API tests.',
+      2: 'Explains unit, integration, and E2E layers accurately, but struggles with the practical criteria for pushing tests down the pyramid.',
+      3: 'Clearly contrasts all three layers: execution speed, debuggability, maintenance costs, and explains why bloated UI suites cause flakiness and slow CI pipelines.',
+      4: 'Deep quality engineering perspective: discusses test distribution ratios, shifting testing left, testing trophy vs pyramid models, and cost-of-defect detection across stages.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests foundational quality architecture, test automation strategy, and layer trade-offs.'
+  },
+  {
+    id: 'qa-j-api-testing-mechanics',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'How do you test RESTful APIs using tools like Postman, REST Assured, or Supertest? Beyond validating HTTP 200 status codes, what assertions do you write for response headers, JSON schema contracts, error payloads, and response latency?',
+    followUp: 'How do you chain API requests together in an automated test (e.g. creating a resource via POST and using the returned ID in a GET or DELETE request)?',
+    concepts: [
+      'API testing dimensions: status codes (2xx, 4xx, 5xx), response headers (Content-Type, caching), payload contracts, and response latency SLAs',
+      'JSON schema validation: verifying types, required properties, and field constraints against an OpenAPI/Swagger specification',
+      'Request chaining and dynamic test state: extracting tokens/IDs from responses to parameterize subsequent requests'
+    ],
+    anchors: {
+      0: 'Only checks if the response returns HTTP 200; does not validate response body contents, headers, or error responses.',
+      1: 'Validates status codes and simple strings, but cannot explain how to validate JSON schemas or chain dynamic variables.',
+      2: 'Validates JSON fields and uses environment variables, but lacks understanding of schema validation, performance thresholds, or edge-case error statuses (400 vs 404 vs 422).',
+      3: 'Comprehensive API testing: validates headers, JSON schema compliance, status codes, payload field types, error contract schemas, and chains dynamic test variables.',
+      4: 'Mastery of API test automation: integrates automated Newman/Jest suites into CI, mocks downstream dependencies with WireMock, and tests idempotent idempotency keys and rate limiting.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests API testing rigor, schema verification, and automated request orchestration.'
+  },
+  {
+    id: 'qa-j-ui-locators-selenium-playwright',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'When writing automated UI tests with Playwright, Cypress, or Selenium, how do you choose resilient element locators? Why should you avoid brittle XPath expressions like `/html/body/div[2]/button`, and how do you handle asynchronous DOM loading without hardcoded sleeps?',
+    followUp: 'Why is using explicit auto-waiting or web-first assertions preferred over Thread.sleep() or cy.wait(5000)?',
+    concepts: [
+      'Locator strategy hierarchy: user-facing attributes (role, text, label) and dedicated data-testid attributes over absolute DOM hierarchies or CSS class names',
+      'Fragility of absolute XPaths: breaking on any minor markup redesign or wrapper div addition',
+      'Handling asynchronous DOM updates: explicit waits, auto-waiting locators, and smart polling instead of arbitrary static sleeps'
+    ],
+    anchors: {
+      0: 'Relies on absolute XPaths copied from browser DevTools; peppers test scripts with arbitrary hardcoded sleep pauses (sleep 5s).',
+      1: 'Uses CSS selectors based on styling classes (.btn-primary-blue-2), which break whenever CSS styles change.',
+      2: 'Uses data-testid attributes, but still relies on hardcoded sleeps when waiting for animations or network requests to complete.',
+      3: 'Implements resilient locator strategies (accessibility roles, data-test attributes); uses auto-waiting, explicit polling conditions, and explains why hardcoded sleeps cause slow and flaky CI builds.',
+      4: 'Modern UI automation mastery: leverages Playwright locator chaining, shadow DOM traversal, web-first assertions, and network idle interception for rock-solid stability.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates test reliability, UI locator robustness, and asynchronous synchronization handling.'
+  },
+  {
+    id: 'qa-j-test-data-isolation',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['databases', 'reliability'],
+    prompt: 'How do you manage test data generation and test environment isolation? How do you ensure that automated test runs do not pollute staging databases, collide with concurrent test executions, or leave orphaned state?',
+    followUp: 'What are the pros and cons of using database transactions that rollback after each test versus creating unique dynamic test entities via API fixtures?',
+    concepts: [
+      'Test data isolation: preventing test cross-talk, race conditions, and dirty state between concurrent test runners',
+      'Data generation strategies: dynamic faker libraries, unique UUID prefixes, dedicated test database seeding, and API setup/teardown fixtures',
+      'State cleanup: automated teardown hooks, soft-delete sweeps, and transactional rollbacks'
+    ],
+    anchors: {
+      0: 'Hardcodes static user IDs (e.g. testuser@test.com) in all tests, causing collisions whenever tests run concurrently or fail.',
+      1: 'Leaves generated test data permanently in shared staging databases with no teardown or cleanup strategy.',
+      2: 'Deletes test data manually or in an afterEach hook, but fails to handle test cleanup when tests crash or time out.',
+      3: 'Designs isolated test data: generates unique entities per test run (using dynamic timestamps/UUIDs), uses robust setup/teardown fixtures, and prevents test collision.',
+      4: 'Comprehensive test infrastructure: implements ephemeral database containers (Testcontainers), automated seed factories, transactional rollbacks, and scheduled orphaned data garbage collection.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates test data architecture, concurrent isolation, and environment hygiene.'
+  },
+  {
+    id: 'qa-j-boundary-value-analysis',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'Explain Boundary Value Analysis and Equivalence Partitioning as black-box test design techniques. Provide a concrete example of how you would derive test input cases for an input field that accepts an integer between 1 and 100.',
+    followUp: 'Why do software systems statistically fail more frequently at boundary edges rather than in the middle of equivalence partitions?',
+    concepts: [
+      'Equivalence Partitioning (EP): dividing input domain into valid and invalid partitions where any representative input should behave similarly',
+      'Boundary Value Analysis (BVA): testing values at the boundaries of equivalence partitions (min, min-1, min+1, max, max-1, max+1)',
+      'Identifying off-by-one errors, conditional logic flaws (< vs <=), and edge-case type overflow'
+    ],
+    anchors: {
+      0: 'Cannot define Equivalence Partitioning or Boundary Value Analysis; tests arbitrary random numbers with no systematic design.',
+      1: 'Identifies 1 and 100 as tests, but does not test invalid boundaries (0, 101) or explain the concept of equivalence classes.',
+      2: 'Identifies boundaries (0, 1, 100, 101) and valid middle values, but cannot explain why defects cluster at boundaries or how to handle non-numeric inputs.',
+      3: 'Systematically articulates EP and BVA: defines valid class [1-100] and invalid classes (<1, >100, non-integers); lists exact boundary test values (0, 1, 2, 99, 100, 101) and boundary justification.',
+      4: 'Advanced test engineering: analyzes 2-value vs 3-value boundary analysis, explains off-by-one algorithmic vulnerabilities, and applies techniques to complex multi-variable decision tables.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests formal test design techniques, systematic edge-case discovery, and defect prevention.'
+  },
+  {
+    id: 'qa-j-project-bug-advocacy',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a scenario where you identified a severe edge-case bug shortly before a scheduled production release, but developers or the product owner wanted to push to production anyway. How did you communicate the risk and advocate for quality?',
+    followUp: 'How do you clearly articulate technical bug severity and business impact without sounding adversarial toward engineering or product management?',
+    concepts: [
+      'Bug advocacy: presenting facts, reproduction steps, frequency likelihood, customer impact, and potential financial/reputational damage',
+      'Severity vs Priority: distinguishing technical defect impact (Severity) from business release urgency (Priority)',
+      'Constructive risk assessment: providing mitigation options (feature flags, hotfix agreements, release gating) rather than simple vetoes'
+    ],
+    anchors: {
+      0: 'Remains silent and allows the broken feature to ship, or angrily argues without presenting objective business impact.',
+      1: 'Reports the bug but backs down immediately when the developer claims it is an unlikely edge case.',
+      2: 'Advocates against release but presents only technical details, struggling to communicate the user and business risk to product owners.',
+      3: 'Constructively advocates for quality: presents clear reproduction steps, maps defect to customer impact and potential revenue loss, and collaborates on practical mitigations (e.g. feature flagging).',
+      4: 'Exemplary quality leadership: provides objective risk matrix, proposes phased rollout or targeted mitigation, documents formal release risk sign-off, and leads blameless post-release evaluation.'
+    },
+    rubricNotes: 'Techno-managerial scoring guidance. Evaluates risk communication, defect advocacy, cross-functional collaboration, and professional diplomacy.'
+  },
+  {
+    id: 'qa-j-project-flaky-test-quarantine',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['reliability', 'project_tradeoffs'],
+    prompt: 'Walk me through how you handled flaky automated tests in a CI/CD build pipeline. When tests fail intermittently due to network latency or race conditions rather than real product regressions, what process do you follow to investigate, quarantine, and fix them?',
+    followUp: 'Why is running automated retries (e.g. retry: 3) in CI often a dangerous bandage that masks underlying architectural bugs?',
+    concepts: [
+      'Flaky test dynamics: intermittent failures caused by race conditions, non-deterministic test data, DOM rendering delays, or external dependencies',
+      'Quarantine process: isolating flaky tests into non-blocking suites to prevent blocking developer PRs while tracking them as technical debt',
+      'Root cause debugging: analyzing execution traces, video recordings, network HAR logs, and eliminating automated retry dependency'
+    ],
+    anchors: {
+      0: 'Ignores flaky tests or simply increases global retry counts until builds pass by luck, undermining engineering trust in CI.',
+      1: 'Deletes failing tests without investigating root cause or tracking them in the backlog.',
+      2: 'Identifies flaky tests and quarantines them, but does not investigate the underlying race condition or schedule timely fixes.',
+      3: 'Establishes structured quarantine workflow: tags flaky test out of main gate, reproduces locally using stress-test loops, fixes locator/timing race conditions, and restores test to CI.',
+      4: 'Systemic quality champion: tracks flakiness metrics across CI runs, analyzes network/database contention, institutes strict quarantine SLAs, and establishes team-wide reliable automation guidelines.'
+    },
+    rubricNotes: 'Techno-managerial scoring guidance. Tests process maturity, CI reliability engineering, and technical debt management.'
+  },
+  {
+    id: 'qa-j-project-manual-vs-auto',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'In a fast-paced sprint with rapid UI iterations, how do you decide which test scenarios warrant automated regression scripts and which are better evaluated via exploratory manual testing? Describe a time you balanced this trade-off.',
+    followUp: 'How do you avoid wasting engineering time automating unstable UI flows that change every week?',
+    concepts: [
+      'Automation ROI: automating stable, repetitive, high-risk, multi-platform paths vs exploratory testing for new, fluid, UX-heavy features',
+      'Balancing automation and manual testing: exploratory charter testing for usability/novel flows, automation for regression safety',
+      'Sprint cadence: testing at the API layer when UI is rapidly changing to maintain automation velocity'
+    ],
+    anchors: {
+      0: 'Attempts to automate 100% of everything in the sprint, resulting in incomplete work and broken automation on the next day\'s UI change.',
+      1: 'Relies purely on manual testing because "automation takes too long", allowing regression defects to accumulate.',
+      2: 'Automates some regression tests, but struggles to articulate a clear decision framework or ROI criteria for automation candidates.',
+      3: 'Applies clear automation selection criteria: automates high-risk stable core paths and API contracts; conducts exploratory manual testing on rapidly evolving UI features.',
+      4: 'Strategic quality management: calculates automation ROI (maintenance cost vs execution frequency), establishes sprint-level quality charters, and coordinates team-wide exploratory testing sessions.'
+    },
+    rubricNotes: 'Techno-managerial scoring guidance. Evaluates pragmatic quality engineering, ROI calculation, and time management in Agile sprints.'
+  },
+  {
+    id: 'qa-j-reflect-missed-bug',
+    role: 'qa_automation_engineer',
+    level: 'junior',
+    stage: 'reflection',
+    topics: ['reliability', 'project_tradeoffs'],
+    prompt: 'Reflect on a critical production bug that slipped past your testing phase and was discovered by end users. How did you conduct root-cause analysis, and what changes did you make to your test suite or acceptance criteria to ensure it never happens again?',
+    followUp: 'What did that experience teach you about the blind spots in your testing assumptions or test environment fidelity?',
+    concepts: [
+      'Root-cause analysis (5 Whys): analyzing environment discrepancies, missing test data, unexpected user behavior, or unmocked edge cases',
+      'Test gap closure: adding regression test cases to prevent recurrence and updating test requirements',
+      'Professional resilience: taking ownership of quality gaps without becoming overly defensive or discouraged'
+    ],
+    anchors: {
+      0: 'Denies ever letting a bug reach production or blames the customer for using the application incorrectly.',
+      1: 'Describes a production bug but took no action to update test suites or prevent the defect from recurring.',
+      2: 'Added a single automated test for the bug, but did not analyze root causes or review broader testing strategy blind spots.',
+      3: 'Candidly describes the missed defect, identifies why the testing phase missed it (e.g. data variance or environment discrepancy), and added targeted automated regression coverage.',
+      4: 'Deep engineering maturity: performed blameless 5-Whys retrospective, updated test environments to mirror production data diversity, and instituted systemic shift-left test gates.'
+    },
+    rubricNotes: 'Unscored reflection. Look for accountability, analytical post-mortem rigor, continuous improvement, and growth mindset.'
+  },
+
+  // ===================== INTERMEDIATE QUESTIONS (11 to 20) =====================
+  {
+    id: 'qa-i-intro-qa-strategy',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe your overall quality engineering strategy across a modern microservices or cloud application. How do you shift testing left into the developer workflow while maintaining robust end-to-end regression safety?',
+    followUp: 'How do you measure whether your quality strategy is actually succeeding (e.g. escape defect rate, MTTR, test execution time)?',
+    concepts: [
+      'Quality Engineering strategy: shift-left testing, automated CI/CD gating, developer enablement, and production observability',
+      'Microservices testing challenges: service mocking, contract testing, and distributed integration environments',
+      'Quality metrics: Change Failure Rate, Defect Escape Rate, Test Execution Duration, and Flakiness Index'
+    ],
+    anchors: {
+      0: 'Views QA as an isolated testing phase at the end of the waterfall sprint; relies exclusively on manual sign-offs.',
+      1: 'Focuses purely on writing UI automation scripts without considering developer workflows, CI gates, or quality metrics.',
+      2: 'Implements automated test suites in CI, but struggles to articulate how to shift testing left or measure quality effectiveness.',
+      3: 'Clearly details holistic quality strategy: provides testing frameworks for developers, enforces PR quality gates, implements contract testing, and tracks defect escape rates.',
+      4: 'Visionary quality engineering: establishes automated test telemetry, integrates synthetic canary testing in production, tracks DORA metrics, and cultivates high-performing engineering quality culture.'
+    },
+    rubricNotes: 'Unscored icebreaker. Look for comprehensive quality vision, engineering leadership, and metric-driven strategy.'
+  },
+  {
+    id: 'qa-i-performance-load-testing',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency', 'reliability'],
+    prompt: 'How do you design and execute performance and load testing using tools like k6, JMeter, or Locust? Explain the difference between stress testing, spike testing, and endurance (soak) testing, and how you identify system throughput saturation.',
+    followUp: 'When analyzing performance test results, why are 95th and 99th percentile response times (p95/p99) significantly more informative than average response times?',
+    concepts: [
+      'Performance testing types: Load (expected traffic), Stress (breaking point), Spike (sudden surge), and Soak/Endurance (memory leaks over time)',
+      'Saturation metrics: Knee in throughput curve (RPS plateau while latency spikes), CPU/memory exhaustion, connection pool starvation',
+      'Percentile latency (p95, p99) vs average: exposing the long-tail experience that averages hide'
+    ],
+    anchors: {
+      0: 'Cannot distinguish load testing from functional testing; only looks at average response time from a single user.',
+      1: 'Runs a high-concurrency script but cannot explain the difference between spike, stress, and soak testing, or how to interpret latency graphs.',
+      2: 'Executes performance tests and monitors p95 latency, but struggles to identify root cause bottlenecks (database connection pool vs garbage collection pauses).',
+      3: 'Clearly contrasts performance test methodologies; designs realistic virtual user ramp-up models; explains throughput saturation points and why p99 latency reveals true user impact.',
+      4: 'Performance engineering mastery: correlates client-side latency with server-side APM metrics (thread starvation, DB lock contention, GC pauses), and automates performance regression gates in CI.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests performance engineering principles, workload modeling, and latency analysis.'
+  },
+  {
+    id: 'qa-i-contract-testing-pact',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['apis', 'reliability'],
+    prompt: 'Explain how Consumer-Driven Contract Testing (using tools like Pact) works in a microservices ecosystem. How does contract testing eliminate the need for slow, brittle end-to-end integration environments while guaranteeing API schema backwards compatibility?',
+    followUp: 'What is the role of a Pact Broker and the can-i-deploy tool when coordinating deployments between consumer and provider services?',
+    concepts: [
+      'Consumer-Driven Contract Testing: consumers define their expectations (contracts), providers verify compliance independently',
+      'Overcoming E2E integration test bottlenecks: eliminating expensive, flaky multi-service staging environments with deterministic unit-speed contract checks',
+      'Pact Broker & can-i-deploy: centralized contract registry verifying consumer-provider version compatibility before deploying to production'
+    ],
+    anchors: {
+      0: 'Unfamiliar with contract testing; believes the only way to test microservices is by deploying all 20 services simultaneously into a shared staging cluster.',
+      1: 'Confuses API contract testing with OpenAPI documentation or simple JSON schema validation.',
+      2: 'Explains the consumer-provider contract concept, but cannot explain the mechanics of independent provider verification or the Pact Broker.',
+      3: 'Clearly details contract testing workflow: consumer generates pact file during tests, provider verifies against contract independently, and can-i-deploy gates releases in CI without shared staging environments.',
+      4: 'Deep distributed testing expertise: explains provider verification states, handling breaking contract versioning, decoupling independent deployments, and comparing contract testing to schema registries.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests microservices integration strategies, contract testing mechanics, and distributed release safety.'
+  },
+  {
+    id: 'qa-i-ci-cd-quality-gates',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['reliability', 'project_tradeoffs'],
+    prompt: 'How do you architect automated quality gates in a CI/CD pipeline? How do you structure PR smoke tests, nightly regression suites, test coverage thresholds, and automated rollbacks based on error budget consumption?',
+    followUp: 'How do you prevent quality gates from becoming a major developer bottleneck that slows down daily pull request velocity?',
+    concepts: [
+      'Multi-tier quality gating: fast PR gates (< 5-10 mins: lint, unit, fast component/API tests) vs asynchronous deep nightly runs (E2E, cross-browser, security, load)',
+      'Metrics-driven gating: code coverage thresholds, SonarQube quality gates, and automated test flakiness filters',
+      'Balancing speed vs safety: keeping PR gates rapid while maintaining comprehensive safety through parallelization and selective test execution'
+    ],
+    anchors: {
+      0: 'Places a 2-hour end-to-end UI suite on every PR commit, completely halting engineering velocity.',
+      1: 'Has no automated gates; relies on manual approvals before merging into production branches.',
+      2: 'Implements CI gates for unit and lint checks, but struggles to design an efficient multi-stage pipeline that balances feedback speed with deep test coverage.',
+      3: 'Architects balanced multi-tier gates: PR smoke tests run under 8 minutes via parallel test runners, while deep regression runs nightly; enforces quality criteria without stalling developers.',
+      4: 'DevOps & Quality architect: integrates smart test selection based on Git diffs, enforces PR preview environments, automates canary analysis gates, and ties deployment gates to Datadog error rates.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates CI/CD pipeline architecture, quality gate design, and developer velocity optimization.'
+  },
+  {
+    id: 'qa-i-parallel-test-execution',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency', 'reliability'],
+    prompt: 'When an automated end-to-end test suite grows to hundreds or thousands of tests taking hours to complete, how do you optimize execution time? Explain techniques like test sharding, containerized parallel test runners, and smart test impact analysis.',
+    followUp: 'What shared resource bottlenecks (e.g. database locks, third-party API rate limits) typically emerge when running 50 test threads in parallel?',
+    concepts: [
+      'Test scaling techniques: test sharding across multiple CI nodes, worker process concurrency, and containerized headless browser grids',
+      'Test Impact Analysis (TIA): running only the tests that touch code modified in the Git changeset',
+      'Resolving parallel test contention: independent database schemas per worker, isolated mock servers, and rate-limit virtualization'
+    ],
+    anchors: {
+      0: 'Runs thousands of tests sequentially in a single thread; accepts 4-hour test execution as normal.',
+      1: 'Increases parallel workers blindly without isolating databases or credentials, causing widespread deadlocks and false failure rates.',
+      2: 'Uses test sharding in CI, but struggles to balance worker execution times (straggler problem) or mitigate database contention.',
+      3: 'Optimizes test suite runtime: implements matrix sharding, dynamic test balancing across workers, per-worker database schemas, and reduces execution time from hours to minutes.',
+      4: 'Advanced test engineering: implements intelligent Test Impact Analysis via AST dependency graphs, distributed browser orchestration (Playwright Grid / Selenium Grid), and optimizes asset caching.'
+    },
+    rubricNotes: 'Technical scoring guidance. Tests concurrency scaling, test execution optimization, and distributed resource isolation.'
+  },
+  {
+    id: 'qa-i-synthetic-monitoring',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['reliability', 'apis'],
+    prompt: 'Explain the concept of synthetic monitoring and continuous testing in production. How do you safely run automated end-to-end verification flows (such as user login or checkout) against live production environments without polluting customer analytics or generating fake financial transactions?',
+    followUp: 'How does synthetic monitoring complement real user monitoring (RUM) and traditional server infrastructure metrics?',
+    concepts: [
+      'Synthetic monitoring: automated test scripts executing against production at regular intervals (e.g. every 5 minutes) to detect availability and regression issues proactively',
+      'Safe production testing: dedicated test tenant accounts, bypassing payment gateways with test credentials, and filtering synthetic traffic from business analytics (Segment/Mixpanel)',
+      'Proactive alerting: discovering customer-facing outages before real users submit support tickets'
+    ],
+    anchors: {
+      0: 'Thinks testing in production is strictly forbidden under any circumstances; unfamiliar with synthetic monitoring concepts.',
+      1: 'Runs tests in production using real accounts, corrupting live revenue reporting and triggering actual credit card charges.',
+      2: 'Explains synthetic monitoring with Datadog or New Relic, but cannot explain how to isolate test data or avoid skewing marketing analytics.',
+      3: 'Designs production synthetic testing: uses dedicated synthetic test credentials, tags traffic to exclude from analytics, mocks third-party billing callbacks safely, and sets proactive alerts.',
+      4: 'Production quality leadership: implements canary verification testing, pairs synthetics with RUM session telemetry, tests dark-launched features via feature flags, and defines automated circuit breakers.'
+    },
+    rubricNotes: 'Technical scoring guidance. Evaluates production verification techniques, synthetic monitoring architecture, and risk containment.'
+  },
+  {
+    id: 'qa-i-project-test-debt-audit',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['reliability', 'project_tradeoffs'],
+    prompt: 'Walk me through how you addressed significant automation test debt in an existing engineering organization, such as an abandoned, slow, or constantly failing Selenium suite. How did you gain leadership buy-in and modernize the automation framework?',
+    followUp: 'How did you handle the dilemma of whether to rewrite the entire test framework from scratch versus iteratively refactoring the legacy test suite?',
+    concepts: [
+      'Test debt remediation: auditing pass rates, execution duration, flakiness causes, and dead code in legacy test suites',
+      'Framework modernization: migrating legacy frameworks (e.g. Selenium/Protractor) to modern engines (Playwright, Cypress) with measurable ROI milestones',
+      'Leadership alignment: framing test debt in terms of developer hours lost, release delays, and escaped production bugs'
+    ],
+    anchors: {
+      0: 'Ignored the legacy test suite completely or demanded an immediate 6-month complete freeze to rewrite everything without delivering value.',
+      1: 'Attempted to fix every broken test simultaneously without triage, getting overwhelmed and making no tangible progress.',
+      2: 'Refactored several tests successfully, but failed to communicate progress or value to engineering leadership.',
+      3: 'Audited test debt systematically: triaged tests by business criticality, sunset obsolete tests, rebuilt core smoke tests in a modern framework with measurable speed improvements, and demonstrated value to stakeholders.',
+      4: 'Transformational quality leadership: framed test refactoring around business metrics (halving CI build time, 99.5% test reliability), established maintainable Page Object/Component models, and trained engineers across the org.'
+    },
+    rubricNotes: 'Techno-managerial scoring guidance. Evaluates technical leadership, legacy framework modernization, and stakeholder management.'
+  },
+  {
+    id: 'qa-i-project-release-signoff',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['reliability', 'project_tradeoffs'],
+    prompt: 'Describe how you define release readiness criteria and manage release sign-off when a deployment has known minor defects and deferred bugs. How do you balance business pressure to release against customer experience and operational stability risks?',
+    followUp: 'What formal documentation or dashboard do you provide to leadership to make an informed, data-driven go/no-go release decision?',
+    concepts: [
+      'Release readiness criteria: zero open critical/high defects, 100% passing core regression, performance SLAs met, and rollback plan validated',
+      'Managing known defects: bug triage with product owners, documented workarounds, customer communication plans, and hotfix SLA commitments',
+      'Objective Go/No-Go decision framework: replacing emotional arguments with data-driven risk profiles'
+    ],
+    anchors: {
+      0: 'Refuses to sign off on any release that has even a single cosmetic typo; acts as an inflexible blocker without considering business context.',
+      1: 'Signs off on releases blindly under developer or management pressure despite knowing critical flows are failing.',
+      2: 'Reviews known bugs before release, but lacks structured criteria or documented risk assessments for executive sign-off.',
+      3: 'Leads structured Go/No-Go triage: categorizes defects by business impact, verifies workarounds, evaluates rollback readiness, and provides transparent risk assessment to leadership.',
+      4: 'Executive quality governance: implements automated release health scorecards, links release decisions to customer SLA risk, establishes error-budget-based approvals, and conducts post-release defect audits.'
+    },
+    rubricNotes: 'Techno-managerial scoring guidance. Evaluates release governance, defect triage, operational risk balancing, and executive communication.'
+  },
+  {
+    id: 'qa-i-project-cross-functional-qa',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'How do you foster a culture where quality is a shared engineering team responsibility rather than solely the job of QA engineers? Describe an initiative where you paired with software engineers to write better unit or integration tests.',
+    followUp: 'How do you overcome initial developer resistance when introducing mandatory test coverage guidelines or testing practices?',
+    concepts: [
+      'Quality coaching model: transitioning QA from isolated gatekeepers to quality coaches empowering developers to test their own code',
+      'Developer enablement: building reusable test utilities, scaffolding test fixtures, and running brown-bag workshops on effective testing',
+      'Cultural alignment: establishing shared quality ownership, joint story refinement, and collaborative root-cause analysis'
+    ],
+    anchors: {
+      0: 'Believes developers should only write code and QA alone is responsible for all testing and defect finding.',
+      1: 'Complains about developers not writing tests but makes no effort to train, support, or provide tooling for them.',
+      2: 'Paired with a developer occasionally on test cases, but did not implement systemic tooling or team-level cultural changes.',
+      3: 'Successfully coached developers: created reusable test fixtures, paired on writing integration tests, and established shared acceptance criteria definitions during sprint refinement.',
+      4: 'Organizational culture leader: transformed team into self-testing engineering culture, created developer testing CLI tooling, introduced "bug bashes", and tracked significant drops in escaped defect rates.'
+    },
+    rubricNotes: 'Techno-managerial scoring guidance. Tests quality coaching, cultural transformation, cross-functional collaboration, and developer enablement.'
+  },
+  {
+    id: 'qa-i-reflect-automation-roi',
+    role: 'qa_automation_engineer',
+    level: 'intermediate',
+    stage: 'reflection',
+    topics: ['project_tradeoffs'],
+    prompt: 'Reflect on an automation framework or extensive testing initiative you built that did not deliver the expected return on investment (ROI), perhaps due to high maintenance costs or changing product directions. What did you learn about sustainable automation design?',
+    followUp: 'How did that failure change how you evaluate the long-term maintainability of testing tools and architectures today?',
+    concepts: [
+      'Automation maintenance overhead: over-engineering frameworks, excessive abstraction layers, brittle UI end-to-end tests, or tool lock-in',
+      'Evaluating true ROI: execution frequency and defect detection value vs creation and maintenance engineering hours',
+      'Designing for sustainability: keeping automation lightweight, modular, easy for developers to contribute to, and aligned with product lifecycles'
+    ],
+    anchors: {
+      0: 'Claims every automation framework they ever built was 100% flawless and high ROI; lacks self-awareness or critical reflection.',
+      1: 'Describes a failed framework but blames team members or changing management rather than analyzing framework architecture choices.',
+      2: 'Recognizes the framework was high maintenance, but cannot explain the architectural reasons (e.g. over-abstraction or wrong testing layer).',
+      3: 'Candidly reflects on over-engineered or poorly targeted automation effort; articulates maintenance cost realities, and explains how they simplified their approach in subsequent projects.',
+      4: 'Profound architectural maturity: articulates why complex custom frameworks often fail compared to standard modern tools, champions developer-friendly minimalism, and shares pragmatic heuristics for testing ROI.'
+    },
+    rubricNotes: 'Unscored reflection. Look for authentic professional introspection, engineering pragmatism, architectural humility, and wisdom.'
+  }
+];

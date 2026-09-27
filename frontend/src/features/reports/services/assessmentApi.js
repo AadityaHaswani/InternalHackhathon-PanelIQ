@@ -39,12 +39,17 @@ export async function getSessionReport(sessionId) {
       return res.data;
     }
   } catch (err) {
-    // If backend doesn't implement /sessions/:id/report yet (404/500/offline), use contract fixture
+    if (err.status === 403 || !sessionId?.startsWith('ses_demo')) {
+      throw err;
+    }
     console.info(`[assessmentApi] Falling back to contract fixture for report ${sessionId}:`, err.message);
   }
 
-  // Check if we have overrides or release saved locally
-  const baseFixture = MOCK_REPORTS[sessionId] || MOCK_REPORTS['ses_demo_backend_01'];
+  // Only check fixture if this is an explicit demo session
+  const baseFixture = MOCK_REPORTS[sessionId];
+  if (!baseFixture) {
+    throw new Error(`Report not found for session ${sessionId}`);
+  }
   const localCopy = JSON.parse(JSON.stringify(baseFixture));
 
   // Merge local overrides if any
@@ -80,10 +85,16 @@ export async function getSessionReplay(sessionId) {
       return res.data;
     }
   } catch (err) {
+    if (!sessionId?.startsWith('ses_demo')) {
+      throw err;
+    }
     console.info(`[assessmentApi] Falling back to contract fixture for replay ${sessionId}:`, err.message);
   }
 
-  const baseReplay = MOCK_REPLAYS[sessionId] || MOCK_REPLAYS['ses_demo_backend_01'];
+  const baseReplay = MOCK_REPLAYS[sessionId];
+  if (!baseReplay) {
+    throw new Error(`Replay not found for session ${sessionId}`);
+  }
   return JSON.parse(JSON.stringify(baseReplay));
 }
 
@@ -165,27 +176,27 @@ export async function getReviewAssignments() {
   try {
     const res = await apiClient.get('/review-assignments');
     if (res?.data) {
-      return res.data;
+      const list = Array.isArray(res.data) ? res.data : (res.data.assignments || []);
+      return list.map((asg) => {
+        const sid = asg.sessionId || asg.session_id;
+        if (localStore.overrides[sid]) {
+          asg.status = 'reviewed';
+          asg.statusLabel = 'Human Reviewed';
+          asg.reviewedScore = localStore.overrides[sid].compositeScore;
+        }
+        if (localStore.releases[sid]) {
+          asg.status = 'reviewed';
+          asg.statusLabel = 'Certified & Released';
+        }
+        return asg;
+      });
     }
   } catch (err) {
-    console.info('[assessmentApi] Falling back to contract fixture for review assignments:', err.message);
+    console.warn('[assessmentApi] Review assignments error:', err.message);
+    throw err;
   }
 
-  const assignments = JSON.parse(JSON.stringify(MOCK_REVIEW_ASSIGNMENTS));
-
-  // Update with any local changes
-  return assignments.map((asg) => {
-    if (localStore.overrides[asg.sessionId]) {
-      asg.status = 'reviewed';
-      asg.statusLabel = 'Human Reviewed';
-      asg.reviewedScore = localStore.overrides[asg.sessionId].compositeScore;
-    }
-    if (localStore.releases[asg.sessionId]) {
-      asg.status = 'reviewed';
-      asg.statusLabel = 'Certified & Released';
-    }
-    return asg;
-  });
+  return [];
 }
 
 /**
@@ -242,14 +253,23 @@ export async function submitScoreOverride(evaluationId, payload) {
  * Certifies and officially releases the report to the candidate.
  */
 export async function releaseSessionReport(sessionId, payload = {}) {
-  const { notes = '', certifiedBy = 'Dr. Vikram Sharma' } = payload;
+  const { notes = '', certifiedBy = 'Dr. Vikram Sharma', criteria = [], summary } = payload;
+  const releaseSummary = summary || notes || 'Official Evaluation Report';
 
   try {
-    const res = await apiClient.post(`/sessions/${sessionId}/release`, { notes, certifiedBy });
+    const res = await apiClient.post(`/sessions/${sessionId}/release`, {
+      summary: releaseSummary,
+      notes,
+      certifiedBy,
+      criteria,
+    });
     if (res?.data) {
       return res.data;
     }
   } catch (err) {
+    if (!sessionId?.startsWith('ses_demo')) {
+      throw err;
+    }
     console.info(`[assessmentApi] Recording release locally for session ${sessionId}:`, err.message);
   }
 
@@ -258,7 +278,7 @@ export async function releaseSessionReport(sessionId, payload = {}) {
     certifiedBy,
     notes,
     releasedAt: new Date().toISOString(),
-    status: 'human_reviewed',
+    status: 'released',
   };
 
   localStore.releases[sessionId] = releaseRecord;

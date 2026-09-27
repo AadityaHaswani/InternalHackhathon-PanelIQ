@@ -312,7 +312,8 @@ test('admin can list approved evaluators with roles and display names', async ()
   const res = await listApprovedEvaluators(client, adminUserId, {});
 
   assert.equal(Array.isArray(res.evaluators), true);
-  assert.equal(res.evaluators.length, 2);
+  assert.equal(res.evaluators.length, 1);
+  assert.equal(res.evaluators.some((e) => e.id === adminUserId), false);
   const evalItem = res.evaluators.find((e) => e.id === evaluatorUserId);
   assert.ok(evalItem);
   assert.equal(evalItem.name, 'Dr. Clara Rios');

@@ -44,8 +44,13 @@ export function createReportRoutes(verifyUser, createDatabaseClient = createRequ
   }));
 
   router.get('/review-assignments', handle(async (req, client) => {
+    const hasPagination = req.query.limit !== undefined || req.query.offset !== undefined;
     const pagination = parse(schema.listAssignmentsSchema, req.query);
-    return await service.listReviewAssignments(client, req.user.id, pagination);
+    const result = await service.listReviewAssignments(client, req.user.id, pagination);
+    if (!hasPagination) {
+      return result.assignments;
+    }
+    return result;
   }));
 
   return router;

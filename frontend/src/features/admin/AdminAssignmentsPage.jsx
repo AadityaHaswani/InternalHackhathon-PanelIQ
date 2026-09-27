@@ -131,12 +131,28 @@ export function AdminAssignmentsPage() {
     },
   ];
 
+  const ROLE_LABELS = {
+    backend_developer: 'Backend Developer',
+    frontend_engineer: 'Frontend Engineer',
+    fullstack_engineer: 'Full Stack Engineer',
+    system_design_engineer: 'System Design Engineer',
+    devops_cloud_engineer: 'DevOps / Cloud Engineer',
+    data_engineer: 'Data Engineer',
+    qa_automation_engineer: 'QA / Automation Engineer',
+  };
+
   const sessionOptions = [
     { value: '', label: completedSessions.length > 0 ? 'Select a candidate session...' : 'No eligible completed sessions' },
-    ...completedSessions.map((s) => ({
-      value: s.id || s.sessionId,
-      label: `${s.profile?.displayName || 'Candidate'} — ${(s.id || s.sessionId).substring(0, 8)} (${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : 'Recent'})`,
-    })),
+    ...completedSessions.map((s) => {
+      const rawRole = s.profile?.targetRole;
+      const roleName = rawRole ? (ROLE_LABELS[rawRole] || rawRole.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())) : 'Technical Interview';
+      const displayName = s.profile?.displayName || 'Candidate';
+      const sid = (s.id || s.sessionId || '').substring(0, 8);
+      return {
+        value: s.id || s.sessionId,
+        label: `${displayName} (${roleName}) — ${sid}`,
+      };
+    }),
   ];
 
   const evaluatorOptions = [

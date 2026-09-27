@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Sparkles,
   Shield,
-  Clock,
   Layers,
   CheckCircle2,
   AlertCircle,
@@ -19,18 +17,29 @@ import { Badge } from '../../components/ui/Badge';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/ErrorState';
+import { Select } from '../../components/ui/Select';
 import { createMockSession } from './interview-fixtures';
+
+const SUPPORTED_ROLES = [
+  { value: 'backend_developer', label: 'Backend Developer' },
+  { value: 'frontend_engineer', label: 'Frontend Engineer' },
+  { value: 'full_stack_engineer', label: 'Full Stack Engineer' },
+  { value: 'system_design_engineer', label: 'System Design Engineer' },
+  { value: 'devops_cloud_engineer', label: 'DevOps / Cloud Engineer' },
+  { value: 'data_engineer', label: 'Data Engineer' },
+  { value: 'qa_automation_engineer', label: 'QA / Automation Engineer' },
+];
 
 /**
  * InterviewSetupPage - Preflight and session creation for technical boardroom simulation.
  * Strict compliance with backend session contract:
  * - Loads catalog via GET /api/v1/catalog
- * - Verifies profile eligibility (targetRole: "backend_developer")
+ * - Selects target role from supported tracks
  * - Creates session via POST /api/v1/sessions with body {}
  * - Navigates strictly to the persisted server ID: /app/interviews/:id
  */
 export function InterviewSetupPage() {
-  const { user, profile, devMode } = useAuth();
+  const { user, profile, devMode, updateProfile } = useAuth();
   const navigate = useNavigate();
 
   const [catalog, setCatalog] = useState(null);
@@ -39,6 +48,21 @@ export function InterviewSetupPage() {
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [creationError, setCreationError] = useState(null);
   const [isUsingFixtures, setIsUsingFixtures] = useState(false);
+  const [selectedRoleSlug, setSelectedRoleSlug] = useState(
+    profile?.targetRole || 'backend_developer'
+  );
+  const [hasUserSelectedRole, setHasUserSelectedRole] = useState(false);
+
+  useEffect(() => {
+    if (profile?.targetRole && !hasUserSelectedRole) {
+      setSelectedRoleSlug(profile.targetRole);
+    }
+  }, [profile?.targetRole, hasUserSelectedRole]);
+
+  const handleRoleChange = (e) => {
+    setSelectedRoleSlug(e.target.value);
+    setHasUserSelectedRole(true);
+  };
 
   // Fetch catalog on mount
   const fetchCatalog = async () => {
@@ -80,7 +104,7 @@ export function InterviewSetupPage() {
       levels: ['junior', 'intermediate'],
       stages: ['icebreaker', 'technical', 'techno_managerial', 'reflection'],
       topics: ['apis', 'databases', 'concurrency', 'reliability', 'project_tradeoffs'],
-      roles: [{ slug: 'backend_developer', domain: 'computer_science', label: 'Backend Developer' }],
+      roles: SUPPORTED_ROLES.map((r) => ({ slug: r.value, domain: 'computer_science', label: r.label })),
     });
     setIsUsingFixtures(true);
     setCatalogError(null);
@@ -92,7 +116,7 @@ export function InterviewSetupPage() {
     setCreationError(null);
 
     // Profile check
-    if (!profile?.displayName || !profile?.targetRole) {
+    if (!profile?.displayName || (!profile?.targetRole && !selectedRoleSlug)) {
       setCreationError({
         code: 'PROFILE_INCOMPLETE',
         message: 'Your candidate profile requires a display name and target role before starting.',
@@ -110,7 +134,7 @@ export function InterviewSetupPage() {
 
     if (isUsingFixtures) {
       // Contract-backed dev session
-      const mockSession = createMockSession(null, profile);
+      const mockSession = createMockSession(null, { ...profile, targetRole: selectedRoleSlug });
       // Persist in sessionStorage so page reload on /app/interviews/:id restores the session
       sessionStorage.setItem(`paneliq_mock_session_${mockSession.id}`, JSON.stringify(mockSession));
       navigate(`/app/interviews/${mockSession.id}`);
@@ -118,6 +142,11 @@ export function InterviewSetupPage() {
     }
 
     try {
+      // Ensure backend profile matches selected role so correct question bank is queried
+      if (selectedRoleSlug && selectedRoleSlug !== profile?.targetRole) {
+        await updateProfile({ targetRole: selectedRoleSlug });
+      }
+
       // Real backend contract: POST /api/v1/sessions with strict empty body {}
       const response = await apiClient.post('/sessions', {});
       const session = response.data?.session;
@@ -145,10 +174,8 @@ export function InterviewSetupPage() {
     }
   };
 
-  const selectedRole = catalog?.roles?.find((r) => r.slug === 'backend_developer') || {
-    label: 'Backend Developer',
-    domain: 'computer_science',
-  };
+  const selectedRole =
+    SUPPORTED_ROLES.find((r) => r.value === selectedRoleSlug) || SUPPORTED_ROLES[0];
 
   const candidateLevel = profile?.experienceLevel || 'junior';
 
@@ -281,17 +308,28 @@ export function InterviewSetupPage() {
                   borderRadius: 'var(--radius-control)',
                   backgroundColor: 'var(--color-surface-subtle)',
                   border: '1px solid var(--color-border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.375rem',
                 }}
               >
                 <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                   Target Track
                 </div>
-                <div style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, color: 'var(--color-text-main)', marginTop: '0.25rem' }}>
-                  {selectedRole.label}
-                </div>
-                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', marginTop: '0.125rem' }}>
-                  Domain: Computer Science
-                </div>
+                <Select
+                  id="target-role-select"
+                  aria-label="Target Track"
+                  options={SUPPORTED_ROLES}
+                  value={selectedRoleSlug}
+                  onChange={handleRoleChange}
+                  selectStyle={{
+                    minHeight: '38px',
+                    padding: '0.375rem 0.625rem',
+                    fontSize: 'var(--font-size-sm)',
+                    fontWeight: 600,
+                  }}
+                  helperText="Domain: Computer Science"
+                />
               </div>
 
               <div

@@ -36,7 +36,8 @@ import {
  * Route: /expert/sessions/:id
  */
 export function ExpertSessionPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.sessionId || params.id;
   const navigate = useNavigate();
 
   const [report, setReport] = useState(null);
@@ -65,6 +66,15 @@ export function ExpertSessionPage() {
   const fetchSessionDetails = async () => {
     setIsLoading(true);
     setError(null);
+    setReport(null);
+    setReplay(null);
+    setCriteriaScores([]);
+    setSelectedTurnIndex(0);
+    setOverrideHistory([]);
+    setOverrideReason('');
+    setReasonError('');
+    setOverrideSuccessMsg('');
+
     try {
       const [repData, replayData] = await Promise.all([
         getSessionReport(id),
@@ -74,25 +84,45 @@ export function ExpertSessionPage() {
       setReport(repData);
       setReplay(replayData);
 
-      if (repData?.scores?.criteria) {
+      if (repData?.scores?.criteria && repData.scores.criteria.length > 0) {
         setCriteriaScores(
           repData.scores.criteria.map((c) => ({
             ...c,
             originalScore: c.score,
           }))
         );
+      } else {
+        const defaultScore = repData?.overallScore ? +(repData.overallScore / 25).toFixed(1) : 3.0;
+        setCriteriaScores([
+          { id: 'correctness', label: 'Technical Correctness', score: defaultScore, originalScore: defaultScore, weight: 0.40 },
+          { id: 'reasoning', label: 'Architectural Reasoning', score: defaultScore, originalScore: defaultScore, weight: 0.25 },
+          { id: 'relevance', label: 'Direct Relevance', score: defaultScore, originalScore: defaultScore, weight: 0.20 },
+          { id: 'tradeoffs', label: 'Operational Trade-offs', score: defaultScore, originalScore: defaultScore, weight: 0.15 },
+        ]);
       }
 
-      if (repData?.reviewer) {
+      if (repData?.reviewOverrides && repData.reviewOverrides.length > 0) {
+        setOverrideHistory(
+          repData.reviewOverrides.map((o) => ({
+            reviewerName: 'Evaluator',
+            role: 'Staff Evaluator',
+            timestamp: o.created_at || new Date().toISOString(),
+            reason: o.reason || 'Calibration adjustment recorded.',
+            compositeScore: o.new_rating !== undefined ? o.new_rating : 3.4,
+          }))
+        );
+      } else if (repData?.reviewer) {
         setOverrideHistory([
           {
-            reviewerName: repData.reviewer.name || 'Dr. Vikram Sharma',
+            reviewerName: repData.reviewer.name || 'Evaluator',
             role: repData.reviewer.role || 'Staff Evaluator',
             timestamp: repData.reviewer.reviewedAt || new Date().toISOString(),
             reason: 'Preliminary calibration adjustments made based on transcript evidence audit.',
             compositeScore: repData.scores?.composite || 3.4,
           },
         ]);
+      } else {
+        setOverrideHistory([]);
       }
     } catch (err) {
       console.error('Failed to load expert review workspace:', err);
@@ -166,12 +196,15 @@ export function ExpertSessionPage() {
     try {
       await releaseSessionReport(id, {
         notes: releaseNotes,
+        summary: releaseNotes || 'Official Evaluation Report',
         certifiedBy: 'Dr. Vikram Sharma',
+        criteria: criteriaScores,
       });
       setIsReleaseModalOpen(false);
       setReport((prev) => ({
         ...prev,
-        status: 'human_reviewed',
+        status: 'released',
+        reportStatus: 'released',
         releasedAt: new Date().toISOString(),
       }));
     } catch (err) {
@@ -205,9 +238,23 @@ export function ExpertSessionPage() {
     );
   }
 
-  const turns = replay?.turns || report?.turns || [];
+  const turns = replay?.transcript || replay?.turns || report?.turns || [];
   const activeTurn = turns[selectedTurnIndex] || turns[0] || {};
-  const isReleased = Boolean(report?.releasedAt);
+  const isReleased = Boolean(report?.releasedAt || report?.status === 'released' || report?.reportStatus === 'released');
+
+  const candidate = report?.candidate || report?.profile || replay?.candidate || replay?.profile || {};
+  const candidateName = candidate.displayName || candidate.display_name || candidate.name || 'Candidate';
+  const rawRole = candidate.targetRole || candidate.target_role;
+  const ROLE_LABELS = {
+    backend_developer: 'Backend Developer',
+    frontend_engineer: 'Frontend Engineer',
+    fullstack_engineer: 'Full Stack Engineer',
+    system_design_engineer: 'System Design Engineer',
+    devops_cloud_engineer: 'DevOps / Cloud Engineer',
+    data_engineer: 'Data Engineer',
+    qa_automation_engineer: 'QA / Automation Engineer',
+  };
+  const roleName = rawRole ? (ROLE_LABELS[rawRole] || rawRole.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())) : 'Technical Interview';
 
   return (
     <div
@@ -256,7 +303,7 @@ export function ExpertSessionPage() {
                 margin: 0,
               }}
             >
-              Session Review: {report?.candidate?.displayName || 'Alex Chen'}
+              Session Review: {candidateName}
             </h1>
             <Badge variant={isReleased ? 'reviewed' : 'accent'}>
               {isReleased ? 'Certified & Released' : 'Human Calibration Active'}
@@ -264,7 +311,7 @@ export function ExpertSessionPage() {
           </div>
 
           <div style={{ fontSize: '12px', color: 'var(--color-text-muted, #8C857B)', marginTop: '0.25rem' }}>
-            Target Role: <strong style={{ color: 'var(--color-text-main, #1A1816)' }}>{report?.candidate?.targetRole || 'Backend Developer'}</strong> • Session ID: <span style={{ fontFamily: 'var(--font-mono)' }}>{id}</span>
+            Target Role: <strong style={{ color: 'var(--color-text-main, #1A1816)' }}>{roleName}</strong> • Session ID: <span style={{ fontFamily: 'var(--font-mono)' }}>{id}</span>
           </div>
         </div>
 
@@ -410,7 +457,7 @@ export function ExpertSessionPage() {
                   lineHeight: 1.5,
                 }}
               >
-                {activeTurn.prompt || activeTurn.question}
+                {activeTurn.prompt || activeTurn.question_snapshot?.prompt || activeTurn.question || '(No prompt available)'}
               </div>
             </div>
 
@@ -430,7 +477,7 @@ export function ExpertSessionPage() {
                   lineHeight: 1.6,
                 }}
               >
-                {activeTurn.candidateAnswer || activeTurn.answer}
+                {activeTurn.candidateAnswer || activeTurn.answer?.answerText || activeTurn.answer_text || (activeTurn.answer?.state === 'skipped' ? '(Turn skipped by candidate)' : '(No response recorded for this turn)')}
               </div>
             </div>
 
@@ -537,7 +584,7 @@ export function ExpertSessionPage() {
                   Original AI Proposal
                 </span>
                 <span style={{ fontSize: '28px', fontWeight: 700, fontFamily: 'var(--font-serif)', color: 'var(--color-primary, #B85042)' }}>
-                  {report?.scores?.composite?.toFixed(1) || '3.4'} <span style={{ fontSize: '14px', color: 'var(--color-text-muted, #8C857B)' }}>/ 4.0</span>
+                  {(report?.scores?.composite ?? (report?.overallScore !== null && report?.overallScore !== undefined ? +(report.overallScore / 25).toFixed(1) : 3.0)).toFixed(1)} <span style={{ fontSize: '14px', color: 'var(--color-text-muted, #8C857B)' }}>/ 4.0</span>
                 </span>
               </div>
 

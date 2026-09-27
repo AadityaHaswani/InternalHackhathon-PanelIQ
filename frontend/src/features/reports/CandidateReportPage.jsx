@@ -21,12 +21,28 @@ import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/ErrorState';
 
+const ROLE_LABELS = {
+  backend_developer: 'Backend Developer',
+  frontend_engineer: 'Frontend Engineer',
+  fullstack_engineer: 'Full Stack Engineer',
+  system_design_engineer: 'System Design Engineer',
+  devops_cloud_engineer: 'DevOps / Cloud Engineer',
+  data_engineer: 'Data Engineer',
+  qa_automation_engineer: 'QA / Automation Engineer',
+};
+
+function formatRole(role) {
+  if (!role) return 'Technical Interview';
+  return ROLE_LABELS[role] || role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function CandidateReportPage() {
   const { id: sessionId } = useParams();
   const { token, role } = useAuth();
   const navigate = useNavigate();
 
   const [report, setReport] = useState(null);
+  const [session, setSession] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPendingReview, setIsPendingReview] = useState(false);
   const [error, setError] = useState(null);
@@ -35,6 +51,18 @@ export function CandidateReportPage() {
     setIsLoading(true);
     setError(null);
     setIsPendingReview(false);
+    setReport(null);
+    setSession(null);
+
+    // Fetch session details for role and identity isolation
+    try {
+      const sRes = await apiClient.get(`sessions/${sessionId}`);
+      if (sRes?.data?.session) {
+        setSession(sRes.data.session);
+      }
+    } catch {
+      // Proceed even if session metadata is unavailable
+    }
 
     try {
       // Backend contract: GET /api/v1/sessions/:id/report
@@ -62,6 +90,10 @@ export function CandidateReportPage() {
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
+
+  const rawRole = report?.profile?.targetRole || session?.profile?.targetRole || session?.profile_snapshot?.targetRole;
+  const roleTitle = formatRole(rawRole);
+  const candidateName = session?.profile?.displayName || report?.profile?.displayName || 'Candidate';
 
   if (isLoading) {
     return (
@@ -128,8 +160,18 @@ export function CandidateReportPage() {
                 margin: '0 0 0.5rem 0',
               }}
             >
-              Session Submitted for Review
+              {roleTitle} Interview Submitted for Review
             </h1>
+            <p
+              style={{
+                fontSize: 'var(--font-size-xs)',
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--color-text-muted)',
+                margin: '0 0 0.75rem 0',
+              }}
+            >
+              Session ID: {sessionId}
+            </p>
             <p
               style={{
                 fontSize: 'var(--font-size-base)',
@@ -139,7 +181,7 @@ export function CandidateReportPage() {
                 lineHeight: 1.6,
               }}
             >
-              All 8 boardroom responses have been durably recorded on the server. Your transcript is currently being reviewed by an authorized evaluator against official rubric anchors.
+              All 8 boardroom responses have been durably recorded on the server. Your {roleTitle} transcript is currently being reviewed by an authorized evaluator against official rubric anchors.
             </p>
           </div>
 
@@ -227,12 +269,17 @@ export function CandidateReportPage() {
       </div>
 
       <PageHeader
-        title="Candidate Performance Scorecard"
-        description="Official evaluation report grounded in genuine evidence from your boardroom simulation turns."
+        title={`${roleTitle} Performance Scorecard`}
+        description={`Official evaluation report for ${candidateName}, grounded in genuine evidence from boardroom simulation turns.`}
         actions={
-          <Badge variant={isReleased ? 'reviewed' : 'pending'}>
-            {isReleased ? `Released (Revision ${report.revision ?? report.currentRevision ?? 1})` : isProvisional ? 'Provisional Report' : 'Draft Report'}
-          </Badge>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+              {sessionId.substring(0, 8)}...
+            </span>
+            <Badge variant={isReleased ? 'reviewed' : 'pending'}>
+              {isReleased ? `Released (Revision ${report.revision ?? report.currentRevision ?? 1})` : isProvisional ? 'Provisional Report' : 'Draft Report'}
+            </Badge>
+          </div>
         }
       />
 

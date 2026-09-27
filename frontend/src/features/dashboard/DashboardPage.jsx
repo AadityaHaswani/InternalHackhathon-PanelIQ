@@ -78,16 +78,28 @@ export function DashboardPage() {
     {
       header: 'Session ID & Role',
       key: 'id',
-      render: (row) => (
-        <div>
-          <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>
-            {row.profile?.targetRole === 'backend_developer' ? 'Backend Developer' : (row.profile?.targetRole || 'Backend Developer')}
+      render: (row) => {
+        const roleLabels = {
+          backend_developer: 'Backend Developer',
+          frontend_engineer: 'Frontend Engineer',
+          fullstack_engineer: 'Full Stack Engineer',
+          system_design_engineer: 'System Design Engineer',
+          devops_cloud_engineer: 'DevOps / Cloud Engineer',
+          data_engineer: 'Data Engineer',
+          qa_automation_engineer: 'QA / Automation Engineer',
+        };
+        const roleName = roleLabels[row.profile?.targetRole] || (row.profile?.targetRole ? row.profile.targetRole.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Backend Developer');
+        return (
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>
+              {roleName}
+            </div>
+            <div style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+              {row.id.substring(0, 18)}...
+            </div>
           </div>
-          <div style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
-            {row.id.substring(0, 18)}...
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       header: 'Level',
@@ -131,7 +143,11 @@ export function DashboardPage() {
       key: 'status',
       render: (row) => (
         row.status === 'completed' ? (
-          <Badge variant="reviewed">Completed</Badge>
+          row.isReportReleased ? (
+            <Badge variant="reviewed">Completed / Released</Badge>
+          ) : (
+            <Badge variant="reviewed">Completed</Badge>
+          )
         ) : (
           <Badge variant="pending">In Progress</Badge>
         )
