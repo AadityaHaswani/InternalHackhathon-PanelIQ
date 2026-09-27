@@ -23,6 +23,7 @@ npm.cmd start           # Normal server
 npm.cmd run lint        # ESLint
 npm.cmd test            # Offline Node built-in tests
 npm.cmd run verify:auth # Manual live test; running server and test account required
+npm.cmd run verify:profiles # Manual two-account profile/Data API isolation test
 ```
 
 `npm` also works where PowerShell execution policy allows it. Tests use synthetic configuration and mock Auth verification; there is no application authentication bypass.
@@ -30,7 +31,8 @@ npm.cmd run verify:auth # Manual live test; running server and test account requ
 ## Endpoints
 
 - `GET /api/v1/health`: public process liveness; returns `{ "data": { "service": "paneliq-backend", "status": "ok" }, "requestId": "..." }`. No database or Auth readiness check.
-- `GET /api/v1/me`: requires `Authorization: Bearer <user-access-token>`; returns only verified `id` and `email` (or null), with `Cache-Control: no-store`.
+- `GET /api/v1/me`: requires `Authorization: Bearer <user-access-token>`; preserves verified user `id`/`email` and adds `profile` (null when absent), with `Cache-Control: no-store`.
+- `PATCH /api/v1/me`: creates or partially updates only the verified user's candidate profile. Accepts displayName, domain, experienceLevel and targetRole; explicit null clears a field, omitted fields stay unchanged.
 
 Every response includes `X-Request-Id`. Errors use `{ "error": { "code": "...", "message": "...", "retryable": false }, "requestId": "..." }`. Auth outages, timeouts and provider rate limits return retryable 503; invalid credentials return 401.
 
@@ -51,6 +53,19 @@ Use the configured port if different from 4000. The [Auth contract](docs/auth-co
 - `test/`: focused offline tests; `scripts/verify-auth.js`: manual live smoke test.
 - `docs/prd.md`: authoritative requirements; `docs/progress.md`: actual task results.
 
-Task 1 foundation and Task 2 identity endpoint are implemented. Live authenticated verification is pending local test-account configuration; database access has not been verified. No frontend, application roles, profile persistence or interview features are included.
+Task 2 live Auth verification passed, as reported by the user. Task 3 profile implementation and SQL are ready; migration deployment and live database/RLS verification remain pending. No frontend, application roles or interview features are included.
 
-Next task, planned but **NOT STARTED**: Database schema, profiles and access rules.
+## Apply Task 3 and verify it
+
+The full beginner walkthrough is in [profile-contract.md](docs/profile-contract.md), including response examples, SQL inspection queries and account setup.
+
+1. Select the intended demo project in Supabase, privately compare its URL with .env, and open **SQL Editor → New query**.
+2. Run `select to_regclass('public.profiles');`. If an unexpected table exists, stop; do not replace it.
+3. If absent, paste the entire [migration](supabase/migrations/202609260001_create_profiles.sql) and click Run once. Confirm success. Check public.profiles, RLS enabled, own SELECT/INSERT/UPDATE policies and the restricted column grants using the contract's SQL queries.
+4. Record `202609260001_create_profiles.sql`, project label and application date in your migration notes and docs/progress.md. Do not rerun it.
+5. Configure two dedicated confirmed test accounts in ignored .env using SUPABASE_TEST_EMAIL / SUPABASE_TEST_PASSWORD and their `_2` equivalents. Follow the contract's SDK signup/confirmation steps if a second account is needed. Normal startup does not require these optional values.
+6. Run `npm.cmd start`. In a second terminal inside backend, run `npm.cmd run verify:profiles`. Require all PASS checks and exit code 0. The script writes synthetic profiles to both supplied accounts; never use real accounts. Tokens remain in memory and output is sanitized.
+
+Only that live test can demonstrate deployed profile access and RLS; generated SQL and offline tests do not. No database administration tool is configured for automatic migration application.
+
+Next task, planned but **NOT STARTED**: Reviewed question bank and supported interview catalog.

@@ -10,7 +10,10 @@ process.env.SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_test';
 const { createApp } = await import('../src/app.js');
 
 async function request(t, verifyUser, authorization, path = '/me') {
-  const server = createApp({ verifyUser }).listen(0, '127.0.0.1');
+  const createDatabaseClient = () => ({ from: () => ({
+    select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+  }) });
+  const server = createApp({ verifyUser, createDatabaseClient }).listen(0, '127.0.0.1');
   t.after(() => new Promise((resolve) => server.close(resolve)));
   await once(server, 'listening');
   const headers = authorization === undefined ? {} : { authorization };
@@ -48,7 +51,7 @@ test('verified identity returns only allowed fields, with case-insensitive Beare
     return { data: { user: { id: 'user-123', email: 'test@example.com', user_metadata: { role: 'admin' }, identities: [], access_token: 'excluded' } }, error: null };
   }, 'bEaReR user-access-token');
   assert.equal(response.status, 200);
-  assert.deepEqual(body, { data: { user: { id: 'user-123', email: 'test@example.com' } }, requestId: body.requestId });
+  assert.deepEqual(body, { data: { user: { id: 'user-123', email: 'test@example.com' }, profile: null }, requestId: body.requestId });
 });
 
 test('missing email becomes null', async (t) => {
