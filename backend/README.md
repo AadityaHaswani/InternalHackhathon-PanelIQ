@@ -24,6 +24,7 @@ npm.cmd run lint        # ESLint
 npm.cmd test            # Offline Node built-in tests
 npm.cmd run verify:auth # Manual live test; running server and test account required
 npm.cmd run verify:profiles # Manual two-account profile/Data API isolation test
+npm.cmd run verify:sessions # Manual two-account catalog/session/transaction test
 ```
 
 `npm` also works where PowerShell execution policy allows it. Tests use synthetic configuration and mock Auth verification; there is no application authentication bypass.
@@ -68,4 +69,34 @@ The full beginner walkthrough is in [profile-contract.md](docs/profile-contract.
 
 Only that live test can demonstrate deployed profile access and RLS; generated SQL and offline tests do not. No database administration tool is configured for automatic migration application.
 
-Next task, planned but **NOT STARTED**: Reviewed question bank and supported interview catalog.
+## Tasks 4 and 5: catalog and interview sessions
+
+Implemented locally: authenticated catalog, profile-matched eight-question plans, own session summaries/resume, atomic answer/skip saving with version and idempotency protection, and explicit completion. See [session-contract.md](docs/session-contract.md) for every request/response and frontend reconnect behavior.
+
+- `GET /api/v1/catalog`
+- `POST /api/v1/sessions`, `GET /api/v1/sessions`
+- `GET /api/v1/sessions/:id`
+- `POST /api/v1/sessions/:id/answers`
+- `POST /api/v1/sessions/:id/skip`
+- `POST /api/v1/sessions/:id/complete`
+
+Set the persisted profile's targetRole to the catalog slug **backend_developer** before creating a session. Display labels/free-text job titles do not silently map to a role. Session snapshots preserve profile and question content; future edits cannot change an interview in progress.
+
+### Required database and review gates
+
+The latest live preflight returned **PGRST205 / 404 for profiles** and authenticated /me returned a safe 500. The profiles migration/schema cache must be resolved before the existing Auth/profile checks can pass. No database administration connector is available, and none of the new SQL was automatically executed.
+
+Use the intended Supabase demo project's **SQL Editor → New query**, privately confirm the project matches .env, then apply each entire file once in this order, stopping on any conflict/error:
+
+1. Existing `202609260001_create_profiles.sql` if not already applied; inspect an existing table instead of replacing it.
+2. [202609270001_question_bank.sql](supabase/migrations/202609270001_question_bank.sql)
+3. [202609270002_interview_sessions.sql](supabase/migrations/202609270002_interview_sessions.sql)
+4. [202609270003_backend_question_drafts.sql](supabase/migrations/202609270003_backend_question_drafts.sql)
+
+Record successful filenames/project/date, inspect RLS and grants, and have a named human review the 32 draft questions plus private concepts. Publish only approved versions using the exact SQL in the [application walkthrough](docs/session-contract.md#apply-and-verify-manually). The drafts are AI-authored, **not expert-reviewed**. They cover two levels and enough alternatives for two disjoint plans per level once published; the larger 40–60 bank target is still short by 8–28 questions. No unrelated roles are supported yet.
+
+Run lint/tests, start the API, then run verify:auth, verify:profiles and verify:sessions in that order from another backend terminal. These manual scripts use the two dedicated confirmed accounts in ignored .env and write synthetic data; never use real accounts. No tokens or answers are printed. The sessions script leaves one active synthetic session for the rollback test.
+
+Finally run the entire [rollback-only SQL probe](supabase/tests/session-rollback.sql) in SQL Editor, retaining its ending ROLLBACK. It forces an error after answer insertion and checks that the answer and advancement both rolled back. Record all actual live results and stop the server. Local tests use mocked SDK/database boundaries; they do not prove deployed RLS or SQL transaction behavior.
+
+Tasks **6–10 are NOT STARTED**. There are no constraint challenges, scoring, AI, replay/retry or evaluator workflows in this slice.

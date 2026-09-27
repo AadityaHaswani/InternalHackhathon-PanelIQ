@@ -33,10 +33,9 @@ export function errorHandler(err, req, res, _next) {
 
   // Server-side logging (suppressed in test)
   if (env.NODE_ENV !== 'test') {
-    console.error(`[Error] [${requestId}] ${statusCode} ${code} - ${err.message}`);
-    if (statusCode >= 500 && err.stack) {
-      console.error(err.stack);
-    }
+    // Parser/provider exceptions can contain body snippets (including answers).
+    // Log only the safe envelope message, never the raw error or stack.
+    console.error(`[Error] [${requestId}] ${statusCode} ${code} - ${message}`);
   }
 
   // Client response matching the standard envelope
