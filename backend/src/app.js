@@ -10,7 +10,7 @@ import { createApiRoutes } from './routes/index.js';
  * Constructs and configures the Express application.
  * Does not start listening so it can be imported cleanly for testing.
  */
-export function createApp({ verifyUser } = {}) {
+export function createApp({ verifyUser, createDatabaseClient } = {}) {
   const app = express();
 
   // 1. Request ID tracking (must be first)
@@ -35,12 +35,18 @@ export function createApp({ verifyUser } = {}) {
   };
   app.use(cors(corsOptions));
 
+  // Identity responses, including JSON parse errors, must not be cached.
+  app.use('/api/v1/me', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
+
   // 3. JSON body parsing with reasonable limit (1MB)
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // 4. Mount API routes under /api/v1
-  app.use('/api/v1', createApiRoutes(verifyUser));
+  app.use('/api/v1', createApiRoutes(verifyUser, createDatabaseClient));
 
   // 5. JSON 404 handler for unmatched routes
   app.use(notFoundHandler);

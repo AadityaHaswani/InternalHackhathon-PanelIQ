@@ -10,7 +10,7 @@ export function errorHandler(err, req, res, _next) {
   let statusCode = 500;
   let code = 'INTERNAL_ERROR';
   let message = 'An unexpected internal error occurred';
-  const retryable = false;
+  const retryable = err.retryable === true;
 
   // Handle body parser errors
   if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && (err.status === 400 || err.statusCode === 400))) {

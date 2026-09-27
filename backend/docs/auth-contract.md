@@ -1,4 +1,4 @@
-# Frontend Auth contract — Task 2
+# Frontend Auth contract — Tasks 2 and 3
 
 The frontend signs in directly using its own Supabase client. It sends the resulting **user access token** to Express. The project publishable key is configuration, not a user access token. There are no Express signup, login, logout or refresh endpoints. The frontend owns token refresh, session storage and sign-in/expired-session UX. No frontend code is implemented here.
 
@@ -10,12 +10,14 @@ Bearer is case-insensitive. HTTP 200 includes `Cache-Control: no-store`:
 
 ```json
 {
-  "data": { "user": { "id": "<verified-user-id>", "email": "<verified-email-or-null>" } },
+  "data": { "user": { "id": "<verified-user-id>", "email": "<verified-email-or-null>" }, "profile": null },
   "requestId": "<request-id>"
 }
 ```
 
-Email is a string when present and JSON null otherwise. No profile, roles, tokens, identities or provider metadata are returned. `X-Request-Id` matches the response body. Auth failures also use `Cache-Control: no-store`.
+Email is a string when present and JSON null otherwise. Task 3 adds `data.profile`: null when no row exists, otherwise the six documented candidate-profile fields. The existing user fields remain unchanged. No roles, tokens, identities or provider metadata are returned. `X-Request-Id` matches the response body. Auth failures also use `Cache-Control: no-store`.
+
+`PATCH /api/v1/me` now saves the verified user's profile. See [profile-contract.md](profile-contract.md) for fields, validation, null semantics and database errors. GET does not create a profile; database failures are never reported as null. The migration must be applied before authenticated /me requests can complete successfully.
 
 ## Errors
 
@@ -43,7 +45,7 @@ Each protected request calls `supabase.auth.getUser(accessToken)`. The shared se
 
 See the [Supabase server client guidance](https://supabase.com/docs/reference/javascript/auth). Role-based authorization is not implemented. User-editable metadata never grants permissions.
 
-The live check verifies **Supabase Auth connectivity and identity verification**, not PostgreSQL table access. No tables, profiles, migrations or access rules are implemented or verified.
+The original Task 2 Auth smoke test passed, as reported by the user. Task 3 adds a profiles migration and user-scoped database operations. The Auth smoke script still checks identity, but /me now also needs the profiles table. Use `npm.cmd run verify:profiles` with two dedicated accounts to verify database operations and direct Data API isolation; an Auth-only result is not proof of RLS.
 
 ## Windows local smoke test
 
@@ -69,4 +71,4 @@ The live check verifies **Supabase Auth connectivity and identity verification**
 
 The script signs in with the SDK in a separate process, keeps tokens in memory and calls the local API at the configured PORT. It prints only PASS/FAIL, status and whether the expected user matched. Success is `PASS status=200 expectedUserMatched=true`. Failures exit nonzero. Missing test credentials yield `FAIL status=not-run expectedUserMatched=false`; a failed connection yields status `unavailable`. No password, keys, tokens, full user/login response or raw errors are printed.
 
-Stop the server with Ctrl+C when done. Remove optional test credentials when no longer needed. Do not commit `.env`. Until this test passes, live authenticated connectivity remains unverified even when mocked tests pass.
+Stop the server with Ctrl+C when done. Remove optional test credentials when no longer needed. Do not commit `.env`. Record current live results separately from mocked tests; the Task 3 database/RLS check remains pending until its migration and two-account smoke test succeed.

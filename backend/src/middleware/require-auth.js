@@ -39,6 +39,8 @@ export function requireAuth(verifyUser = verifyAccessToken) {
         return reject(res, req.id, 401, 'AUTH_INVALID', 'Invalid or expired access token');
       }
       req.user = { id: user.id, email: typeof user.email === 'string' ? user.email : null };
+      // Internal request-only token; never part of the response identity.
+      Object.defineProperty(req, 'verifiedAccessToken', { value: match[1] });
       return next();
     } catch (error) {
       return handleVerificationError(error, req, res, next);
