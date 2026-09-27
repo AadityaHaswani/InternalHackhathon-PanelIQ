@@ -25,6 +25,16 @@ export function SettingsPage() {
   const [experienceLevel, setExperienceLevel] = useState(profile?.experienceLevel || 'junior');
   const [targetRole, setTargetRole] = useState(profile?.targetRole || 'backend_developer');
 
+  // Sync profile when fetched from backend
+  React.useEffect(() => {
+    if (profile) {
+      if (profile.displayName) setDisplayName(profile.displayName);
+      if (profile.domain) setDomain(profile.domain);
+      if (profile.experienceLevel) setExperienceLevel(profile.experienceLevel);
+      if (profile.targetRole) setTargetRole(profile.targetRole);
+    }
+  }, [profile]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -32,15 +42,20 @@ export function SettingsPage() {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (!displayName.trim()) {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
       toast.error('Display name cannot be empty');
+      return;
+    }
+    if ([...trimmed].length > 80) {
+      toast.error('Display name cannot exceed 80 characters');
       return;
     }
 
     setIsSaving(true);
     try {
       await updateProfile({
-        displayName: displayName.trim(),
+        displayName: trimmed,
         domain,
         experienceLevel,
         targetRole,

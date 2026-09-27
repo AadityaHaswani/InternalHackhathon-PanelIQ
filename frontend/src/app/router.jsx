@@ -1,14 +1,13 @@
-import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration, useLocation } from 'react-router-dom';
 
 // Layout & Guards
 import { AppShell } from '../components/ui/AppShell';
 import { RequireAuth, RequireRole } from '../components/ui/RouteGuard';
 import { NotFoundPage } from '../components/ui/NotFoundPage';
-import { PlaceholderRoute } from '../components/ui/PlaceholderRoute';
 
 // Dev 1 Owned Pages (Matching Step 2 route-to-page specification)
-import { LandingPage } from '../features/landing/LandingPage';
+import { LandingPage, CandidatesPage, EvaluatorsPage } from '../features/landing';
 import { AuthPage } from '../features/auth/AuthPage';
 import { AuthCallbackPage } from '../features/auth/AuthCallbackPage';
 import { PasswordResetPage } from '../features/auth/PasswordResetPage';
@@ -21,11 +20,49 @@ import { AdminAssignmentsPage } from '../features/admin/AdminAssignmentsPage';
 // Dev 2 Owned Pages
 import { InterviewSetupPage, InterviewRoomPage } from '../features/interview';
 
+// Reports & Retries
+import { CandidateReportPage, InterviewReplayPage, TargetedRetryPage } from '../features/reports';
+
+// Evaluator & Question Lab
+import { EvaluatorQueuePage, EvaluatorSessionReviewPage, QuestionLabPage } from '../features/evaluator';
+
+function RootLayout() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [location.pathname, location.hash]);
+
+  return (
+    <>
+      <ScrollRestoration />
+      <Outlet />
+    </>
+  );
+}
+
 const router = createBrowserRouter([
-  // Public Landing Page
+  {
+    element: <RootLayout />,
+    children: [
+  // Public Marketing Pages
   {
     path: '/',
     element: <LandingPage />,
+  },
+  {
+    path: '/candidates',
+    element: <CandidatesPage />,
+  },
+  {
+    path: '/evaluators',
+    element: <EvaluatorsPage />,
   },
 
   // Auth Workflows
@@ -129,17 +166,13 @@ const router = createBrowserRouter([
     ),
   },
 
-  // Dev 3 Route Slots (Registered for navigation integrity; owned by Dev 3)
+  // Reports & Post-Interview Experiences (Protected)
   {
     path: '/app/interviews/:id/report',
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Evidence-Linked Scorecard & Report"
-            routePath="/app/interviews/:id/report"
-          />
+          <CandidateReportPage />
         </AppShell>
       </RequireAuth>
     ),
@@ -149,11 +182,7 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Interview Replay Timeline"
-            routePath="/app/interviews/:id/replay"
-          />
+          <InterviewReplayPage />
         </AppShell>
       </RequireAuth>
     ),
@@ -163,55 +192,41 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Targeted Skill Retry"
-            routePath="/app/retries/:id"
-          />
+          <TargetedRetryPage />
         </AppShell>
       </RequireAuth>
     ),
   },
+
+  // Evaluator Routes (Protected by Evaluator / Admin Role Guard)
   {
     path: '/expert',
     element: (
-      <RequireAuth>
+      <RequireRole allowedRoles={['evaluator', 'admin']}>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Evaluator Review Queue"
-            routePath="/expert"
-          />
+          <EvaluatorQueuePage />
         </AppShell>
-      </RequireAuth>
+      </RequireRole>
     ),
   },
   {
     path: '/expert/sessions/:id',
     element: (
-      <RequireAuth>
+      <RequireRole allowedRoles={['evaluator', 'admin']}>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Evaluator Score Verification & Overrides"
-            routePath="/expert/sessions/:id"
-          />
+          <EvaluatorSessionReviewPage />
         </AppShell>
-      </RequireAuth>
+      </RequireRole>
     ),
   },
   {
     path: '/expert/question-lab',
     element: (
-      <RequireAuth>
+      <RequireRole allowedRoles={['evaluator', 'admin']}>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Interviewer Question Lab & Sandbox"
-            routePath="/expert/question-lab"
-          />
+          <QuestionLabPage />
         </AppShell>
-      </RequireAuth>
+      </RequireRole>
     ),
   },
 
@@ -220,6 +235,8 @@ const router = createBrowserRouter([
     path: '*',
     element: <NotFoundPage />,
   },
+],
+},
 ]);
 
 export function AppRouter() {

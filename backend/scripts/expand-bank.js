@@ -1,0 +1,1117 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const seedsDir = path.resolve(__dirname, '../supabase/seeds');
+
+// 32 original questions enriched with concrete 0-4 scoring anchors + 16 new questions = 48 total.
+// Each scored question has explicit 0-4 anchors reflecting observable answer quality.
+// 24 Junior (3 icebreaker, 12 technical, 6 techno-managerial, 3 reflection)
+// 24 Intermediate (3 icebreaker, 12 technical, 6 techno-managerial, 3 reflection)
+
+const questions = [
+  // ===================== JUNIOR QUESTIONS (1 to 24) =====================
+  {
+    id: 'be-j-intro-project',
+    level: 'junior',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a small backend project you built. What did it do, and which part did you personally implement?',
+    followUp: 'What was the single most difficult decision you had to make while writing that backend code?',
+    concepts: ['Concrete scope', 'Personal contribution', 'A lesson or limitation'],
+    anchors: {
+      0: 'No meaningful response or cannot describe any backend code they personally wrote.',
+      1: 'Describes a project at a high level but cannot clarify personal code contribution versus tutorial template.',
+      2: 'Explains what the project did and identifies personal code, but offers minimal reflection on limitations.',
+      3: 'Clearly explains personal contribution, implementation details (routing, data access), and at least one concrete constraint or lesson learned.',
+      4: 'Outstanding self-awareness: articulates architecture, personal implementation boundaries, trade-offs made under time/skill constraints, and what they would refactor.'
+    },
+    rubricNotes: 'Unscored context/icebreaker. Look for authentic ownership, clear technical communication, and honest boundaries.'
+  },
+  {
+    id: 'be-j-intro-request',
+    level: 'junior',
+    stage: 'icebreaker',
+    topics: ['apis'],
+    prompt: 'Choose an application you use and describe what you think happens on its backend when you submit a form. Say where you are unsure.',
+    followUp: 'Where does validation happen first, on the client or on the server, and why?',
+    concepts: ['Client-server boundary', 'Request processing and storage', 'Acknowledges assumptions'],
+    anchors: {
+      0: 'Cannot articulate the difference between client browser and server backend.',
+      1: 'States that data goes to a server, but cannot describe routing, validation, or database interaction.',
+      2: 'Explains HTTP POST request, server parsing, and database saving, but does not acknowledge uncertainty or edge cases.',
+      3: 'Coherently traces client HTTP POST -> server routing -> body validation -> DB persistence -> HTTP response, acknowledging areas of uncertainty.',
+      4: 'Deep architectural intuition: highlights network boundaries, security (never trusting client input), serialization, status codes, and areas of assumption.'
+    },
+    rubricNotes: 'Unscored context/icebreaker. Reward intellectual honesty and foundational mental model of web protocols.'
+  },
+  {
+    id: 'be-j-intro-debugging',
+    level: 'junior',
+    stage: 'icebreaker',
+    topics: ['reliability'],
+    prompt: 'Describe the hardest bug you have tracked down so far. How did you figure out what was wrong, and what did you change to prevent it from happening again?',
+    followUp: 'Did you add automated tests or monitoring after finding the bug?',
+    concepts: ['Problem reproduction', 'Root-cause isolation', 'Defensive preventative fix'],
+    anchors: {
+      0: 'Cannot describe a specific bug or claims they never make mistakes.',
+      1: 'Describes a symptom (e.g. syntax error or crash) but relies on random trial-and-error to fix it.',
+      2: 'Explains how they reproduced the bug and used logs or print statements to locate the fix.',
+      3: 'Demonstrates disciplined debugging: reproduced issue, isolated root cause, applied a targeted fix, and verified resolution.',
+      4: 'Exemplary engineering discipline: root-cause analysis, defensive validation to prevent recurrence, and adding regression tests.'
+    },
+    rubricNotes: 'Unscored context/icebreaker. Evaluates debugging mindset, perseverance, and preventative engineering habits.'
+  },
+  {
+    id: 'be-j-api-validation',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'You are adding POST /tasks. What would you validate before saving a task, and what response would you send for invalid input?',
+    followUp: 'What if the JSON is valid but the task title contains only spaces?',
+    concepts: ['Shape and type validation', 'Required trimmed fields and limits', 'Safe 4xx response'],
+    anchors: {
+      0: 'Saves incoming body directly to database without any validation or error response.',
+      1: 'Mentions checking for empty strings, but misses type checks, length bounds, or returns HTTP 500 on validation failure.',
+      2: 'Validates required fields and types, returning HTTP 400, but omits string trimming and character limits.',
+      3: 'Comprehensive validation: JSON payload shape, required fields, whitespace trimming, string length bounds (e.g. max 100 chars), returning HTTP 400 or 422 with structured error messages.',
+      4: 'Production-ready: mentions schema validation libraries (Zod/Joi), sanitization against null bytes/control chars, structured error envelopes, and explicitly handles whitespace-only strings.'
+    },
+    rubricNotes: 'Technical scoring. Accepts either manual validation or schema validation libraries. Look for defense against malformed payloads and whitespace-only text.'
+  },
+  {
+    id: 'be-j-api-pagination',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'A task list now has 100,000 records. How would you change its API so clients do not download every record at once?',
+    followUp: 'If a new record is inserted while a client paginates using offset and limit, what issue can occur and how does cursor-based pagination prevent it?',
+    concepts: ['Bounded page size', 'Stable ordering', 'Pagination parameters and continuation'],
+    anchors: {
+      0: 'Suggests loading all records into memory and filtering on the frontend.',
+      1: 'Mentions adding a limit parameter, but does not specify offset/page or default/max limits.',
+      2: 'Implements limit and offset/page parameters with default limit, but forgets deterministic ordering (ORDER BY).',
+      3: 'Provides clean limit/offset pagination with enforced maximum limit (e.g. 50/100), deterministic sorting (`ORDER BY created_at, id`), and metadata response (total/next).',
+      4: 'Recognizes offset drift (duplicate/skipped records upon concurrent insert) and compares offset pagination with keyset/cursor pagination (`WHERE id > cursor`).'
+    },
+    rubricNotes: 'Technical scoring. Accepts both limit/offset and keyset/cursor pagination. Look for bounded limits and deterministic sorting.'
+  },
+  {
+    id: 'be-j-api-status-codes',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'You are designing REST endpoints for a user management service. Explain when you would return HTTP 400, 401, 403, and 404, and how your response body explains the issue.',
+    followUp: 'Why should an API never return detailed database error traces in a 4xx or 5xx response body?',
+    concepts: ['Distinguishes 401 unauthenticated vs 403 unauthorized', 'Appropriate client error semantics', 'Consistent structured error payload'],
+    anchors: {
+      0: 'Cannot distinguish client errors (4xx) from server errors (5xx) or uses 200 for all responses.',
+      1: 'Defines 404 correctly, but confuses 401 and 403, or cannot explain what triggers 400.',
+      2: 'Correctly defines all 4 codes: 400 (bad input), 401 (missing/invalid token), 403 (valid token, forbidden resource), 404 (not found). Response bodies are plain strings.',
+      3: 'Accurately explains all four status codes with realistic examples and provides a structured JSON error envelope (`{ error: { code, message } }`).',
+      4: 'Explains subtle nuances: 401 `WWW-Authenticate` header, when to return 404 instead of 403 to prevent resource enumeration, and sanitizing error details to prevent information disclosure.'
+    },
+    rubricNotes: 'Technical scoring. Distinguishing 401 (authentication/identity) from 403 (authorization/permission) is the key discriminator.'
+  },
+  {
+    id: 'be-j-db-uniqueness',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'Two users try to register the same email almost simultaneously. Why is checking whether the email exists before inserting insufficient, and what would you add?',
+    followUp: 'What HTTP status code and error payload should your API return when a database unique constraint violation is caught?',
+    concepts: ['Check-insert race', 'Database unique constraint', 'Handle duplicate error safely'],
+    anchors: {
+      0: 'Claims application-level `if (exists)` check is completely sufficient.',
+      1: 'Recognizes that duplicates might occur, but suggests sleeping/retrying in code instead of database constraints.',
+      2: 'Identifies the race condition and recommends adding a database `UNIQUE` constraint on `email`, but does not explain error handling.',
+      3: 'Explains the concurrent check-then-insert race window, enforces a database `UNIQUE` constraint, and catches the unique violation error (Postgres 23505) to return HTTP 409 Conflict.',
+      4: 'Compares explicit exception handling (409 Conflict) with atomic upsert (`INSERT ... ON CONFLICT DO NOTHING`), discussing index overhead and case-insensitive email normalization (`lower(email)`).'
+    },
+    rubricNotes: 'Technical scoring. The candidate must mention database UNIQUE constraints as the authoritative enforcement mechanism.'
+  },
+  {
+    id: 'be-j-db-index',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'Listing a user\'s tasks becomes slow as the table grows. What would you investigate, and when might an index on user_id help?',
+    followUp: 'Why might a database query planner choose a sequential table scan even when an index on user_id exists?',
+    concepts: ['Inspect query and data size', 'Index matches filter', 'Write/storage cost of indexes'],
+    anchors: {
+      0: 'Suggests buying a bigger server or indexing every column in the table.',
+      1: 'Suggests adding an index on `user_id` without explaining how to measure or verify query execution.',
+      2: 'Explains that an index on `user_id` replaces a full table scan with an index scan; mentions using `EXPLAIN`.',
+      3: 'Systematic approach: run `EXPLAIN ANALYZE`, inspect sequential scan vs index scan, verify index matches filter (`WHERE user_id = ?`), and acknowledge index maintenance write overhead.',
+      4: 'Advanced junior insight: composite indexes if filtering by user and sorting by date (`user_id, created_at`), selectivity factors, and why planners ignore indexes on tiny tables.'
+    },
+    rubricNotes: 'Technical scoring. Look for understanding that indexes speed up reads but add storage and write overhead.'
+  },
+  {
+    id: 'be-j-db-foreign-keys',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'A teammate suggests removing database foreign key constraints to make test data setup easier. What risks does this create in production, and how else could you make testing easy?',
+    followUp: 'What happens to child rows in an orders table when a parent user row is deleted if foreign keys are disabled versus enabled?',
+    concepts: ['Referential integrity and orphan records', 'Cascading actions safety', 'Database factories or test transactions'],
+    anchors: {
+      0: 'Agrees with removing foreign keys without recognizing any production risks.',
+      1: 'Says foreign keys should stay, but cannot explain what an orphan record is or how to solve the testing pain.',
+      2: 'Explains referential integrity and orphan rows, but offers no practical solutions for testing.',
+      3: 'Articulates production risks (orphan records, data corruption, broken joins) and proposes testing alternatives (test factories, seed helpers, truncation scripts, or transactional rollback in tests).',
+      4: 'Comprehensive answer: explains ON DELETE CASCADE vs RESTRICT, data consistency guarantees, and recommends clean fixture factories or transactional test rollbacks.'
+    },
+    rubricNotes: 'Technical scoring. Evaluates understanding of database-enforced integrity versus application-level assumptions.'
+  },
+  {
+    id: 'be-j-concurrency-stock',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'An item has one unit left. Two requests both read the stock as one and both place an order. Explain a database approach that prevents selling two units.',
+    followUp: 'How should the API respond if the conditional update returns 0 affected rows because the last unit was just sold?',
+    concepts: ['Read-modify-write race', 'Conditional atomic update or lock', 'Check update result within transaction'],
+    anchors: {
+      0: 'Suggests checking `if (stock > 0)` in application code before issuing `UPDATE`.',
+      1: 'Identifies the race condition, but proposes an in-memory lock or global variable on a single Node server.',
+      2: 'Suggests a database transaction, but does not use row locking or conditional updates, leaving the race open.',
+      3: 'Solves the race via: (a) conditional update `UPDATE items SET stock = stock - 1 WHERE id = ? AND stock >= 1` checking affected rows = 1; OR (b) `SELECT stock FROM items WHERE id = ? FOR UPDATE` inside a transaction.',
+      4: 'Evaluates trade-offs: atomic conditional update (optimistic/lightweight) vs pessimistic row locking (`FOR UPDATE`), handles 0 affected rows with HTTP 409/422 Out of Stock, and mentions `CHECK (stock >= 0)` constraint.'
+    },
+    rubricNotes: 'Technical scoring. Both atomic conditional updates (`UPDATE ... WHERE stock >= 1`) and pessimistic row locking (`FOR UPDATE`) are valid.'
+  },
+  {
+    id: 'be-j-concurrency-retry',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['concurrency', 'apis'],
+    prompt: 'A client times out after creating an order and sends the same request again. How could the API avoid creating a duplicate order?',
+    followUp: 'How long should an idempotency record be retained, and what should happen if a client reuses an idempotency key with a different request payload?',
+    concepts: ['Timeout does not prove failure', 'Idempotency key with uniqueness', 'Return stored outcome for retry'],
+    anchors: {
+      0: 'Claims clients should never retry orders, or assumes a timeout means the order failed.',
+      1: 'Suggests checking if an order with the same total exists for that user in the last minute.',
+      2: 'Recommends client sends a unique ID (idempotency key), but cannot explain how the server stores or recognizes it.',
+      3: 'Explains idempotency keys: client sends unique UUID header; backend saves key in DB with unique constraint; retrying returns the stored result instead of creating another order.',
+      4: 'Comprehensive idempotency design: atomic key reservation, payload fingerprinting to detect conflicts (409 IDEMPOTENCY_CONFLICT), retention TTL, and replaying stored outcomes.'
+    },
+    rubricNotes: 'Technical scoring. Look for recognition that network timeouts are ambiguous (the request may have committed).'
+  },
+  {
+    id: 'be-j-concurrency-counters',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'A high-traffic blog has a view counter for articles. Explain why `article.views = article.views + 1` in application code loses counts under concurrent requests, and how to fix it in SQL.',
+    followUp: 'If 10,000 users view an article per second, why might direct database updates cause row lock contention?',
+    concepts: ['Read-modify-write lost update', 'Atomic SQL increment `views = views + 1`', 'Write buffering or asynchronous aggregation'],
+    anchors: {
+      0: 'Claims reading a value and writing value + 1 cannot lose counts.',
+      1: 'Identifies that concurrent reads happen at the same time, but suggests in-memory locks on a single Node process.',
+      2: 'Explains the lost update anomaly and fixes it with atomic SQL: `UPDATE articles SET views = views + 1 WHERE id = ?`.',
+      3: 'Clear explanation: both threads read `views = 100`, both compute `101`, last write wins and one count is lost. Fixes with atomic SQL increment in DB engine.',
+      4: 'High-scale insight: atomic update solves correctness, but for 10k QPS mentions lock contention and suggests Redis counter (`INCR`) or batching writes.'
+    },
+    rubricNotes: 'Technical scoring. The atomic SQL increment (`SET views = views + 1`) is the core answer; Redis/batching is a bonus.'
+  },
+  {
+    id: 'be-j-reliability-timeout',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'Your endpoint calls a shipping provider that sometimes never responds. How would you prevent the endpoint from waiting indefinitely and explain the failure to the client?',
+    followUp: 'How would you differentiate between an error caused by a downstream service taking too long versus your own server running out of resources?',
+    concepts: ['Bounded timeout', 'Safe temporary error', 'Avoid claiming success without result'],
+    anchors: {
+      0: 'Leaves default socket timeout (forever) or returns a fake success code when shipping hangs.',
+      1: 'Mentions setting a timeout, but returns HTTP 500 with raw stack trace or claims order was placed.',
+      2: 'Configures HTTP client timeout (e.g. 5 seconds) and returns HTTP 504 Gateway Timeout or 503 Service Unavailable.',
+      3: 'Applies explicit timeout (e.g. `AbortSignal.timeout(5000)`), catches timeout exception, returns retryable 504/503 with helpful JSON message, and logs error with request ID.',
+      4: 'Production resilience: timeout budgeting, distinguishing client timeout vs downstream abort, idempotency on retry, and never fabricating success.'
+    },
+    rubricNotes: 'Technical scoring. Look for bounded request timeouts and safe 503/504 status codes.'
+  },
+  {
+    id: 'be-j-reliability-logs',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'A user says saving a task failed yesterday. What information would you log to investigate, and what information should stay out of the logs?',
+    followUp: 'How does a correlation ID or request ID help when tracking an error across multiple backend services?',
+    concepts: ['Request ID and timestamp', 'Operation and coarse outcome', 'Exclude credentials and sensitive payloads'],
+    anchors: {
+      0: 'Logs full request body including passwords, or suggests logging nothing to save disk space.',
+      1: 'Lists basic items (timestamp, error), but does not mention request IDs or data privacy exclusions.',
+      2: 'Logs timestamp, user ID, endpoint, request ID, and error message. Mentions excluding passwords and credit card numbers.',
+      3: 'Comprehensive logging discipline: structured logs with timestamp (ISO), request/trace ID, user ID, route, HTTP status, execution latency, error stack. Excludes: passwords, API keys, bearer tokens, PII.',
+      4: 'Enterprise logging: structured JSON logging (Pino/Winston), correlation IDs propagated across services, centralized log ingestion, and automated PII masking.'
+    },
+    rubricNotes: 'Technical scoring. Excluding secrets/tokens while retaining trace IDs and timestamps is the primary test.'
+  },
+  {
+    id: 'be-j-reliability-health-checks',
+    level: 'junior',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'Your microservice has a /health endpoint checked by a load balancer every 5 seconds. What dependencies should be checked, and why should a deep database check be isolated from liveness probes?',
+    followUp: 'What happens to your application fleet if every instance simultaneously fails health checks because of a momentary database blip?',
+    concepts: ['Liveness vs readiness distinction', 'Cascading failure risk if DB slows', 'Fast, bounded health probe response'],
+    anchors: {
+      0: 'Runs an expensive heavy query on every 5-second health ping without timeouts.',
+      1: 'Mentions checking database connection, but does not understand why health checks can cause cascading failures.',
+      2: 'Distinguishes between a shallow ping (is node process alive?) and a dependency check (can it reach database?).',
+      3: 'Explains liveness (process alive, restart if dead) vs readiness (ready to accept traffic). Warns that failing liveness on DB hiccup causes load balancer to kill all containers, amplifying the outage.',
+      4: 'Production design: separate `/health/live` and `/health/ready`, lightweight non-locking query (`SELECT 1`), strict short timeout (1s), and caching readiness status to prevent probe stampede.'
+    },
+    rubricNotes: 'Technical scoring. Distinguishing process liveness from service readiness prevents cascading outages.'
+  },
+  {
+    id: 'be-j-project-deadline',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'Your team has one day left. Search filters and reliable task saving are both unfinished. How would you choose scope and communicate the decision?',
+    followUp: 'How would you write a clear update to stakeholders explaining that task saving is functional but search filters are deferred to the next release?',
+    concepts: ['Protect core durable workflow', 'Explain scope and risks', 'Agree acceptance checks'],
+    anchors: {
+      0: 'Tries to rush both features in one night with zero testing, risking total demo failure.',
+      1: 'Chooses a feature randomly or waits for a manager without voicing technical trade-offs.',
+      2: 'Picks task saving because core persistence matters more than search, but communication to stakeholders is vague.',
+      3: 'Decisive and communicative: prioritizes durable data saving over search (search is useless if tasks aren\'t saved); communicates trade-off early with realistic demo acceptance criteria.',
+      4: 'Exemplary engineering maturity: explains user impact, defines explicit demo fallback (e.g. search filter disabled in UI), and communicates proactively with clear next-steps.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Prioritizing durable data integrity over non-essential UI features shows strong engineering instincts.'
+  },
+  {
+    id: 'be-j-project-contract',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['apis', 'project_tradeoffs'],
+    prompt: 'A frontend teammate expects dueDate but your API returns deadline. How would you resolve this mismatch and prevent similar integration surprises?',
+    followUp: 'What automated test would you add to your CI pipeline to catch breaking API field changes before deployment?',
+    concepts: ['Agree explicit contract', 'Coordinate compatibility change', 'Example responses and integration test'],
+    anchors: {
+      0: 'Blames frontend developer or silently changes the field in production without telling anyone.',
+      1: 'Changes backend field immediately, potentially breaking other consumers.',
+      2: 'Coordinates with frontend to agree on a name, but does not suggest backward compatibility or automated verification.',
+      3: 'Pragmatic resolution: agree on field name; support temporary dual-serialization (return both `dueDate` and `deadline`); establish shared OpenAPI/contract specs and integration tests.',
+      4: 'Engineering leadership: explains contract-first development, shared schemas (Zod/TypeScript contracts), automated schema drift tests in CI, and deprecation timelines.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Emphasizes collaboration, backward compatibility, and automated contract testing.'
+  },
+  {
+    id: 'be-j-project-bug',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['reliability', 'project_tradeoffs'],
+    prompt: 'Just before a demo you find a bug that occasionally loses a saved task. How would you report it and decide whether the demo can proceed?',
+    followUp: 'If the bug affects only 1% of users under high concurrency, how would you gather reproduction steps without exposing user data?',
+    concepts: ['Reproduce and assess impact', 'Do not conceal data loss', 'Fix or disclose bounded workaround'],
+    anchors: {
+      0: 'Conceals the bug and hopes it doesn\'t trigger during the demo.',
+      1: 'Panics and cancels the demo without investigating severity or reproduction conditions.',
+      2: 'Reports the bug to the team, but cannot formulate a clear reproduction path or workaround.',
+      3: 'Integrity and triage: reproduces conditions; assesses severity (data loss is critical); immediately informs team/lead with evidence; agrees whether to demo unaffected paths or fix.',
+      4: 'Senior-level composure: isolates bug trigger (e.g. rapid double-click); provides bounded demo workaround; documents honest bug ticket; prioritizes data integrity above demo optics.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Zero tolerance for concealing data loss. Evaluates integrity, composure, and triage.'
+  },
+  {
+    id: 'be-j-project-library',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'A teammate suggests a new framework to solve one small validation problem. What questions would you ask before adding it this week?',
+    followUp: 'If the library reduces code volume by 50 lines but introduces 15 transitive dependencies, what trade-offs would you weigh?',
+    concepts: ['Compare existing simple option', 'Learning and dependency cost', 'Time-box evaluation against need'],
+    anchors: {
+      0: 'Adopts any new library immediately because newer is always better.',
+      1: 'Rejects all libraries out of hand without asking any questions.',
+      2: 'Asks about library bundle size and popularity, but overlooks maintenance, security, and team learning curve.',
+      3: 'Asks targeted questions: active maintenance/license, bundle and dependency weight, security vulnerability history, learning curve, and whether a simple 10-line native function suffices.',
+      4: 'Structured framework evaluation: maintenance cost vs feature benefit, dependency blast radius (supply chain security), team consensus, and proposing a time-boxed spike before adoption.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Balances pragmatic utility against dependency bloat and maintenance overhead.'
+  },
+  {
+    id: 'be-j-project-tech-debt',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'You notice an existing service endpoint has no unit tests and frequent regressions, but product asks for a new feature on it this week. How do you balance delivering the feature with improving stability?',
+    followUp: 'How do you justify writing tests to a non-technical product manager with an urgent feature deadline?',
+    concepts: ['Incremental testing before touching legacy code', 'Characterization tests', 'Honest timeline estimate with risk communication'],
+    anchors: {
+      0: 'Rewrites the entire service from scratch without telling anyone, missing the deadline.',
+      1: 'Adds the new feature without writing any tests, hoping it doesn\'t cause another regression.',
+      2: 'Asks for a 2-week freeze to write tests, without accommodating the business deadline.',
+      3: 'Pragmatic balance: write characterization tests around existing behavior before adding the feature; include testing in the feature estimate; communicate risk transparently.',
+      4: 'Boy Scout rule applied maturely: adds automated regression safety net first; explains testing in terms of delivery speed and preventing future downtime; increments coverage iteratively.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Evaluates ability to negotiate technical debt responsibly within business delivery deadlines.'
+  },
+  {
+    id: 'be-j-project-code-review',
+    level: 'junior',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'A teammate submits a 1,500-line pull request touching 20 files right before the end of the sprint. How do you approach reviewing it without holding up the team or approving blind bugs?',
+    followUp: 'What feedback would you give to help the teammate structure pull requests better in the future?',
+    concepts: ['Splitting PR into reviewable chunks', 'High-risk surface area prioritization', 'Constructive team feedback and agreement'],
+    anchors: {
+      0: 'Rubber-stamps with "LGTM" without reading the code to hit sprint goals.',
+      1: 'Blocks the PR angrily and refuses to review it.',
+      2: 'Tries to read all 1,500 lines line-by-line, getting fatigued and missing critical logic errors.',
+      3: 'Tactful and effective: asks author to walk through high-risk areas (database migrations, auth logic); focuses review on core logic and tests; suggests splitting into smaller PRs next time.',
+      4: 'Exemplary team collaboration: prioritizes critical risk surfaces, checks automated CI tests, pairs with author on complex parts, and proposes team PR size guidelines constructively.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Evaluates code review diligence, constructive communication, and team process awareness.'
+  },
+  {
+    id: 'be-j-reflect-improve',
+    level: 'junior',
+    stage: 'reflection',
+    topics: ['project_tradeoffs'],
+    prompt: 'Which answer today would you improve with another ten minutes, and how would you check whether your revised approach is correct?',
+    followUp: 'What specific documentation or test would you consult first?',
+    concepts: ['Identifies a specific gap', 'Concrete verification step', 'No penalty for honest uncertainty'],
+    anchors: {
+      0: 'Claims all their answers were 100% flawless and nothing could be improved.',
+      1: 'Says an answer was bad, but cannot articulate why or what they would change.',
+      2: 'Identifies an answer they were unsure about and gives a general idea of how to research it.',
+      3: 'Identifies a concrete technical gap (e.g. index type, concurrency race condition) and describes how they would test and verify a revised approach.',
+      4: 'High self-awareness: precise diagnosis of trade-offs omitted earlier, specific experiment or documentation reference to verify, and positive learning mindset.'
+    },
+    rubricNotes: 'Unscored context/reflection. Reward honest self-assessment and practical verification strategies.'
+  },
+  {
+    id: 'be-j-reflect-learning',
+    level: 'junior',
+    stage: 'reflection',
+    topics: ['reliability'],
+    prompt: 'Name one backend concept you would practice after this interview. Propose a small experiment and explain what result would teach you something.',
+    followUp: 'What would a failing experiment tell you about the system?',
+    concepts: ['Specific learning target', 'Feasible experiment', 'Observable result'],
+    anchors: {
+      0: 'Cannot name any concept or says they already know everything.',
+      1: 'Names a vague buzzword (e.g. "AI" or "microservices") without any feasible experiment.',
+      2: 'Names a relevant backend concept (e.g. database indexes) and describes a simple experiment.',
+      3: 'Names a focused concept (e.g. connection pool exhaustion, Redis locking); designs a concrete experiment with observable metrics proving success or failure.',
+      4: 'Exceptional curiosity: clear hypothesis, reproducible test setup (e.g. load testing with Autocannon), measurable thresholds, and reflection on failure insights.'
+    },
+    rubricNotes: 'Unscored context/reflection. Evaluates continuous learning appetite and disciplined experimentation.'
+  },
+  {
+    id: 'be-j-reflect-feedback',
+    level: 'junior',
+    stage: 'reflection',
+    topics: ['project_tradeoffs'],
+    prompt: 'Think of critical technical feedback you received on code you wrote. What was the critique, how did you respond at the time, and how has it influenced your coding habits since?',
+    followUp: 'Has there ever been a time you disagreed with code review feedback, and how did you resolve it?',
+    concepts: ['Receptiveness to technical feedback', 'Objective evaluation of trade-offs', 'Sustained behavioral improvement'],
+    anchors: {
+      0: 'Claims they never received critical feedback or blames others for misunderstandings.',
+      1: 'Recalls a critique, but viewed it as a personal attack or complied without understanding why.',
+      2: 'Describes a technical critique and acknowledges the reviewer was correct.',
+      3: 'Reflects constructively on feedback (e.g. error handling, naming, query performance), explains how they adopted it, and demonstrates ongoing habit changes.',
+      4: 'Mature engineering attitude: separates ego from code; seeks out constructive review; explains how disagreement was resolved via objective benchmarks or team standards.'
+    },
+    rubricNotes: 'Unscored context/reflection. Evaluates coachability, emotional maturity, and growth trajectory.'
+  },
+
+  // ===================== INTERMEDIATE QUESTIONS (25 to 48) =====================
+  {
+    id: 'be-i-intro-design',
+    level: 'intermediate',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a backend design decision you owned. What constraints shaped it, and what evidence later showed whether it worked?',
+    followUp: 'If you had double the traffic today, what component in that design would reach its limit first?',
+    concepts: ['Personal responsibility', 'Constraints and alternatives', 'Measured result or limitation'],
+    anchors: {
+      0: 'Describes a system they merely used as a client, with no personal design ownership.',
+      1: 'Describes a design choice, but cannot explain what constraints shaped it or what alternatives were rejected.',
+      2: 'Explains their design decision and constraints, but relies on subjective impressions rather than concrete metrics or evidence.',
+      3: 'Clear architectural ownership: outlines requirements, constraints, alternatives evaluated, and presents measured production results (latency, error rate, throughput).',
+      4: 'Exemplary architectural maturity: clearly explains trade-offs (simplicity vs scale), shares quantitative operational metrics, and identifies the next bottleneck under 10x traffic.'
+    },
+    rubricNotes: 'Unscored context/icebreaker. Evaluates technical ownership, trade-off clarity, and evidence-based engineering.'
+  },
+  {
+    id: 'be-i-intro-incident',
+    level: 'intermediate',
+    stage: 'icebreaker',
+    topics: ['reliability'],
+    prompt: 'Describe a reliability problem you investigated, in a project or a practice system. How did you narrow the possible causes?',
+    followUp: 'What post-incident safeguard did you put in place to ensure that specific failure mode could never happen again silently?',
+    concepts: ['Separates symptoms from hypotheses', 'Uses evidence', 'Clear account of own contribution'],
+    anchors: {
+      0: 'Describes a bug fix but cannot explain systematic incident investigation.',
+      1: 'Describes an incident, but investigation was trial-and-error without metrics or log analysis.',
+      2: 'Explains symptoms and how they used logs to find the issue, but skips verification and long-term prevention.',
+      3: 'Disciplined incident investigation: separates symptoms from causes, uses telemetry/logs to validate hypotheses, mitigates impact first, and implements preventative safeguards.',
+      4: 'Production leadership: root-cause analysis (5 Whys), explains blast radius containment, blameless post-mortem actions, and automated monitoring/alerts added.'
+    },
+    rubricNotes: 'Unscored context/icebreaker. Look for methodical troubleshooting, telemetry usage, and durable safeguards.'
+  },
+  {
+    id: 'be-i-intro-scaling',
+    level: 'intermediate',
+    stage: 'icebreaker',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe a situation where a system you worked on faced unexpected traffic or data volume growth. What broke first, and how did you triage the immediate bottleneck?',
+    followUp: 'How did you keep the system partially functional while you deployed the fix?',
+    concepts: ['Bottleneck identification', 'Metrics-driven triage', 'Short-term relief vs permanent architecture'],
+    anchors: {
+      0: 'Cannot describe any scaling challenges or claims systems never have bottlenecks.',
+      1: 'Describes a crash, but cannot identify what system component (CPU, memory, DB connections, network) was exhausted.',
+      2: 'Identifies the bottleneck (e.g. database connection pool exhaustion) and describes how they scaled vertically or added replicas.',
+      3: 'Systematic scaling triage: identified specific bottleneck using metrics; applied immediate relief (rate limiting, connection pooling, caching); then implemented architectural resolution.',
+      4: 'High-scale insight: explains saturation metrics, graceful degradation (shedding non-critical load), architectural remediation, and load testing verification.'
+    },
+    rubricNotes: 'Unscored context/icebreaker. Assesses real-world operational experience and ability to triage under pressure.'
+  },
+  {
+    id: 'be-i-api-idempotency',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['apis', 'concurrency'],
+    prompt: 'Design idempotency for POST /orders. Explain how concurrent requests with the same key are handled and what happens when the key is reused with a different body.',
+    followUp: 'What if the first request commits but its response is lost due to a client network disconnect?',
+    concepts: ['Atomic key reservation/unique constraint', 'Compare normalized request fingerprint', 'Persist and replay outcome'],
+    anchors: {
+      0: 'Does not know what idempotency is or suggests checking if user has any existing orders.',
+      1: 'Suggests saving a key in memory, but fails on concurrent requests or clustered server environments.',
+      2: 'Uses an idempotency key in DB, but does not handle concurrent in-flight requests or body mismatches.',
+      3: 'Production design: unique constraint on idempotency key; hashes/fingerprints request body (returns 409 IDEMPOTENCY_CONFLICT on payload mismatch); persists response outcome to replay on retry.',
+      4: 'Comprehensive distributed design: atomic lock/reservation pattern, handles in-flight request races with `409 IN_PROGRESS`, persists outcome and headers, defines reasonable TTL, and replays safely even if client disconnected.'
+    },
+    rubricNotes: 'Technical scoring. The candidate must handle both concurrent duplicate requests and payload mismatch conflicts.'
+  },
+  {
+    id: 'be-i-api-versioning',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['apis'],
+    prompt: 'You must replace a public API field while older mobile clients remain active. Outline a migration that avoids breaking them and how you would know when to remove the old field.',
+    followUp: 'How can you use API gateways or deprecation headers (like Sunset: <date>) to notify external consumers before removing an old field?',
+    concepts: ['Additive compatibility period', 'Consumer/version observability', 'Explicit deprecation and removal gate'],
+    anchors: {
+      0: 'Deletes the old field immediately, breaking all active mobile clients.',
+      1: 'Suggests creating an entirely new `/v2` API for a single field change without explaining deprecation.',
+      2: 'Applies expand-contract: adds new field alongside old field, but offers no strategy for measuring usage or deciding when to delete.',
+      3: 'Cohesive backward-compatible migration: expand (add new field, dual-serialize in responses); telemetry (log old field access by client version); announce deprecation window with `Sunset` headers; contract only after traffic drops to zero.',
+      4: 'Platform excellence: backward-compatible payload evolution, client version telemetry, proactive partner communication, automated schema diffing in CI, and clear removal thresholds.'
+    },
+    rubricNotes: 'Technical scoring. The expand-and-contract pattern and traffic observability are the core requirements.'
+  },
+  {
+    id: 'be-i-api-rate-limiting',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['apis', 'reliability'],
+    prompt: 'Design a distributed rate limiter for a public API that limits each API key to 100 requests per minute. Explain your data store, algorithm choice, and how you handle clock skew across server nodes.',
+    followUp: 'How do you handle a scenario where your Redis rate-limiting cache temporarily crashes: fail-open or fail-closed?',
+    concepts: ['Token bucket or sliding window log', 'Centralized cache (Redis with Lua script)', 'HTTP 429 Too Many Requests with Retry-After header'],
+    anchors: {
+      0: 'Suggests in-memory counters in a single server process for a multi-node API.',
+      1: 'Mentions Redis, but suggests a fixed window counter that permits 2x traffic bursts at window boundaries.',
+      2: 'Recommends sliding window or token bucket in Redis, but overlooks race conditions under concurrent requests.',
+      3: 'Distributed rate limiting: sliding window counter or token bucket in Redis using atomic Lua script; returns HTTP 429 with `Retry-After` and `X-RateLimit-*` headers; discusses fail-open vs fail-closed policy.',
+      4: 'High-throughput architecture: evaluates sliding window counter vs token bucket memory trade-offs, uses atomic Redis Lua scripts to eliminate race conditions, avoids clock skew by relying on Redis server time, and configures fallback circuit breaker.'
+    },
+    rubricNotes: 'Technical scoring. Look for understanding of distributed counters, atomic execution (Lua), and HTTP 429 semantics.'
+  },
+  {
+    id: 'be-i-db-transfer',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['databases', 'concurrency'],
+    prompt: 'A transfer debits one account and credits another. Describe transaction boundaries, concurrency controls and failure handling that prevent partial or double transfers.',
+    followUp: 'If two transfers run concurrently—User A to User B, and User B to User A—how do you prevent a database deadlock?',
+    concepts: ['Atomic debit and credit', 'Consistent locking/order or conditional writes', 'Idempotent retry and invariant checks'],
+    anchors: {
+      0: 'Updates accounts in separate queries without a database transaction.',
+      1: 'Uses a transaction, but lacks concurrency locking, allowing negative balances through concurrent debits.',
+      2: 'Uses transactions and row locking (`SELECT FOR UPDATE`), but fails to recognize or prevent deadlocks when transfers occur in reverse order.',
+      3: 'Rock-solid transaction: single ACID transaction (`BEGIN ... COMMIT`); checks balance invariants; prevents deadlocks by sorting account IDs before acquiring row locks (e.g. always lock `min(A,B)` then `max(A,B)`).',
+      4: 'Production banking grade: consistent lock ordering for deadlock elimination, idempotent transfer keys, ledger-based double-entry bookkeeping (append-only ledger rows rather than mutable balance columns), and audit logging.'
+    },
+    rubricNotes: 'Technical scoring. Deterministic lock ordering (e.g. `ORDER BY account_id`) is the key test for deadlock prevention.'
+  },
+  {
+    id: 'be-i-db-query-plan',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'A query filters orders by customer and status, then sorts by created_at. How would you investigate a slowdown and evaluate a composite index without assuming every index helps?',
+    followUp: 'In a composite index on (customer_id, status, created_at), how does the order of columns affect queries that filter by status without customer_id?',
+    concepts: ['Explain plan and realistic data', 'Column ordering matches access pattern', 'Measure latency and write overhead'],
+    anchors: {
+      0: 'Creates three separate single-column indexes and assumes database will figure it out.',
+      1: 'Suggests a composite index, but column ordering is arbitrary and cannot explain index prefix rules.',
+      2: 'Runs `EXPLAIN ANALYZE`; proposes composite index with equality columns first, but does not evaluate write or storage overhead.',
+      3: 'Structured analysis: `EXPLAIN (ANALYZE, BUFFERS)`; composite index column order: equality filters first (`customer_id`, `status`) then sort/range (`created_at`); explains left-prefix rule; measures write amplification and index bloat.',
+      4: 'Database expertise: evaluates partial indexes (e.g. indexing only `status = "pending"`), index-only scans via covering index (`INCLUDE`), verifies selectivity on realistic data, and monitors buffer cache hit ratios.'
+    },
+    rubricNotes: 'Technical scoring. Equality before range/sort in composite indexes and testing with `EXPLAIN ANALYZE` are critical.'
+  },
+  {
+    id: 'be-i-db-sharding-partition',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['databases'],
+    prompt: 'A time-series audit log table in PostgreSQL has grown to 500 million rows, making deletions and queries slow. Compare table partitioning (by date) with application-level sharding, and explain how partition pruning improves query performance.',
+    followUp: 'How does dropping an old monthly partition compare in terms of disk I/O and table locking versus running `DELETE FROM audit_logs WHERE created_at < ...`?',
+    concepts: ['Declarative range partitioning by timestamp', 'Partition pruning at query execution time', 'Zero-downtime partition rotation via DROP TABLE instead of DELETE'],
+    anchors: {
+      0: 'Suggests running `DELETE FROM table` in a cron job without recognizing vacuum and lock overhead.',
+      1: 'Knows partitioning exists, but cannot explain how queries benefit or how partition pruning works.',
+      2: 'Recommends declarative range partitioning by month; explains that pruning skips scanning unneeded tables.',
+      3: 'Compares partitioning vs sharding: range partitioning is transparent to SQL queries and allows instant cleanup via `DROP TABLE` (metadata-only) instead of vacuum-heavy `DELETE`; pruning skips non-matching partitions during plan execution.',
+      4: 'Architectural depth: details declarative partitioning setup, query planner partition pruning verification in `EXPLAIN`, evaluates when sharding across distinct DB nodes is required (write throughput/storage limits), and automation of partition creation.'
+    },
+    rubricNotes: 'Technical scoring. The contrast between expensive transactional `DELETE` + `VACUUM` versus O(1) `DROP TABLE` on old partitions is a key insight.'
+  },
+  {
+    id: 'be-i-concurrency-version',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'Two browser tabs edit the same record. Design an optimistic concurrency API that prevents one tab silently overwriting the other\'s changes.',
+    followUp: 'Should the client merge conflicts automatically, or should the application present a diff UI to the user?',
+    concepts: ['Expected version in request', 'Atomic conditional update', 'Conflict response and refetch UX'],
+    anchors: {
+      0: 'Permits last-write-wins, overwriting previous tab changes silently.',
+      1: 'Suggests locking the record when opened, not understanding web HTTP statelessness.',
+      2: 'Includes a version number in request and checks `WHERE version = expected`, but doesn\'t handle the conflict response.',
+      3: 'Optimistic concurrency control: client sends `expected_version` (or `If-Match` ETag); server executes `UPDATE ... WHERE id = ? AND version = ?`; if 0 rows updated, returns HTTP 409 Conflict (or 412); client refetches and reconciles.',
+      4: 'End-to-end robustness: compares version columns vs ETags, details conflict resolution strategies (three-way merge, field-level merge, or user diff prompt), and ensures monotonic version increment in DB.'
+    },
+    rubricNotes: 'Technical scoring. Both version numbers (409 Conflict) and HTTP ETags / `If-Match` (412 Precondition Failed) are valid.'
+  },
+  {
+    id: 'be-i-concurrency-worker',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency', 'reliability'],
+    prompt: 'Two workers may pick the same pending job, and either can crash after doing work. How would you claim jobs safely and limit duplicate side effects?',
+    followUp: 'If a worker dies after performing a payment side-effect but before deleting the queue message, how does your system prevent charging twice?',
+    concepts: ['Atomic claim/lease', 'Lease expiry and recovery', 'Idempotent external side effects'],
+    anchors: {
+      0: 'Selects pending jobs without locking, letting both workers claim the exact same job.',
+      1: 'Marks job as processing, but has no recovery mechanism if the worker crashes midway.',
+      2: 'Uses `SELECT FOR UPDATE SKIP LOCKED` or an atomic claim with a lease timestamp, but lacks idempotency for side effects.',
+      3: 'Robust worker queue: atomic claim using `SKIP LOCKED` or `UPDATE ... SET status = "claimed", lease_until = now() + 5min`; background reaper reclaims expired leases; downstream actions use idempotency keys to prevent duplicate execution upon retry.',
+      4: 'Distributed systems mastery: explains at-least-once delivery guarantees, heartbeats for long-running tasks, dead letter queues (DLQ) for poison pills, and transactional outbox for reliable side effects.'
+    },
+    rubricNotes: 'Technical scoring. Combining atomic claim (`SKIP LOCKED` / lease) with downstream idempotency is the hallmark of intermediate proficiency.'
+  },
+  {
+    id: 'be-i-concurrency-distributed-lock',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['concurrency'],
+    prompt: 'Two background workers in different cloud regions must run a scheduled billing batch job, but only one may run at a time. Design a distributed locking mechanism that handles worker crashes without causing permanent deadlocks.',
+    followUp: 'What happens if a worker experiences a 30-second garbage collection pause while holding a 20-second lease, and how do fencing tokens resolve this?',
+    concepts: ['Lease with TTL / auto-expiry', 'Heartbeat renewal mechanism', 'Fencing tokens to reject late stale writes'],
+    anchors: {
+      0: 'Suggests a boolean flag in a file or assumes only one container will run.',
+      1: 'Sets a lock in Redis without an expiration TTL, risking permanent deadlock if the worker crashes.',
+      2: 'Uses a lock with a TTL (e.g. Redis `SET key value NX PX 30000`), but does not account for tasks running longer than the TTL.',
+      3: 'Distributed lock design: atomic acquisition with auto-expiring lease TTL; background heartbeat to extend lease while active; release only if lock value matches worker UUID; handles worker crash via TTL expiry.',
+      4: 'Deep distributed systems insight: explains Martin Kleppmann\'s GC pause dilemma, implements monotonic fencing tokens checked by storage layer to reject stale writes from paused workers, and evaluates consensus systems (Raft/Zookeeper/Postgres).'
+    },
+    rubricNotes: 'Technical scoring. Lease expiration + heartbeat is the baseline; understanding fencing tokens demonstrates top-tier capability.'
+  },
+  {
+    id: 'be-i-reliability-retries',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'A slow downstream service causes clients and your API to retry, increasing load. Explain how you would bound retries and recover without amplifying the outage.',
+    followUp: 'Why is exponential backoff alone insufficient without random jitter during a major downstream service recovery?',
+    concepts: ['Timeout and total retry budget', 'Backoff with jitter', 'Backpressure or temporary fail-fast'],
+    anchors: {
+      0: 'Retries in an infinite tight loop or retries every failed 4xx request.',
+      1: 'Uses fixed retry delays, causing synchronized bursts of traffic against the failing service.',
+      2: 'Implements exponential backoff and caps max attempts, but omits jitter and global retry limits.',
+      3: 'Resilient retry policy: exponential backoff with full jitter to break up synchronized retry waves; strict retry budget (e.g. max 3 retries, retry only transient 5xx/network errors); circuit breaker to fail-fast when downstream is overwhelmed.',
+      4: 'Production resilience mastery: explains thundering herd / retry storms, analyzes client retry budgets (limiting retries to 10% of total traffic), dead-lettering, and using `Retry-After` headers.'
+    },
+    rubricNotes: 'Technical scoring. The combination of exponential backoff, jitter, retry limits, and circuit breaking is expected.'
+  },
+  {
+    id: 'be-i-reliability-cache',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['reliability', 'databases'],
+    prompt: 'You cache product availability, but inventory changes frequently. Describe what may safely use the cache and where authoritative checks must still occur.',
+    followUp: 'What is cache stampede (or thundering herd), and what strategy prevents the database from being overwhelmed when a hot cache key expires?',
+    concepts: ['Staleness trade-off', 'Authoritative reservation transaction', 'Invalidation/TTL and failure behavior'],
+    anchors: {
+      0: 'Reads and writes inventory directly from cache with no database backing.',
+      1: 'Caches everything indefinitely and assumes cache will always be accurate.',
+      2: 'Uses cache for browsing/catalog with a short TTL, but does not explicitly require DB transaction on purchase.',
+      3: 'Clear architecture: cache serves high-volume read browsing with acceptable staleness; checkout/reservation MUST bypass cache and lock authoritative database row; handles cache stampede via mutex locks or background warming.',
+      4: 'Production caching patterns: Cache-Aside vs Write-Through, probabilistic early expiration (XFetch algorithm), cache invalidation via CDC/events, and fallback degradation when cache cluster fails.'
+    },
+    rubricNotes: 'Technical scoring. Separating safe cached catalog browsing from authoritative transactional reservation is the key test.'
+  },
+  {
+    id: 'be-i-reliability-circuit-breaker',
+    level: 'intermediate',
+    stage: 'technical',
+    topics: ['reliability'],
+    prompt: 'A downstream payment service begins taking 15 seconds per request before returning HTTP 500. Design a circuit breaker pattern (Closed, Open, Half-Open) to protect your API from thread pool starvation.',
+    followUp: 'When the circuit breaker is in the Open state, what response do you return to the end user and how do you know when to close it?',
+    concepts: ['State machine: Closed -> Open -> Half-Open', 'Failure threshold and time window', 'Fast fallback without network hop in Open state'],
+    anchors: {
+      0: 'Allows requests to hang for 15 seconds until all server worker threads are exhausted and API crashes.',
+      1: 'Adds a timeout, but continues hammering the failing downstream service on every new request.',
+      2: 'Explains Closed and Open states, but misses the Half-Open recovery state or fallback response.',
+      3: 'Full circuit breaker pattern: Closed (normal), Open (failures exceed threshold, fail fast immediately with 503/fallback), Half-Open (trial requests sent after cooldown to test recovery); prevents thread pool exhaustion.',
+      4: 'Enterprise resiliency: error rate windowing, fallback options (queued asynchronous settlement, degraded response), health metrics reporting, and distributed circuit breaking considerations.'
+    },
+    rubricNotes: 'Technical scoring. The three-state machine (Closed, Open, Half-Open) and fast-fail behavior must be explained.'
+  },
+  {
+    id: 'be-i-project-migration',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs', 'databases'],
+    prompt: 'Your team needs a schema change while old and new API versions run together. Propose a rollout, verification and rollback strategy.',
+    followUp: 'During an expand-contract database migration, at what exact stage is it safe to remove the backward-compatibility write trigger?',
+    concepts: ['Expand-contract migration', 'Backward-compatible rollout', 'Verify before destructive cleanup'],
+    anchors: {
+      0: 'Runs destructive schema change directly in production while API servers are serving live traffic.',
+      1: 'Takes scheduled maintenance downtime for hours for a routine schema change.',
+      2: 'Explains adding a new column, but has no plan for backfilling data or managing rolling server updates.',
+      3: 'Three-phase expand-contract migration: (1) Expand: add nullable column/table, deploy dual-write code; (2) Backfill existing rows and verify parity; (3) Contract: switch reads to new schema, stop writes to old, drop deprecated column after observation.',
+      4: 'Zero-downtime mastery: detailed blue-green/canary deployment coordination, automated parity verification scripts, rollback plans at each phase, and zero locking on large tables via non-blocking DDL (`CONCURRENTLY`).'
+    },
+    rubricNotes: 'Techno-managerial scoring. The expand-and-contract pattern is the industry standard for zero-downtime schema evolution.'
+  },
+  {
+    id: 'be-i-project-slo',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs', 'reliability'],
+    prompt: 'A stakeholder asks for a new feature while error rates exceed the team\'s target. How would you use evidence to negotiate work priorities and communicate risk?',
+    followUp: 'How do you differentiate between an error budget burn caused by intermittent network blips versus a systemic regression?',
+    concepts: ['User impact and reliability evidence', 'Concrete options and trade-offs', 'Agreed measurable recovery goal'],
+    anchors: {
+      0: 'Blindly builds the feature and ignores production outages, or rudely rejects product managers with no data.',
+      1: 'Points to an error log, but cannot translate technical errors into business risk or user impact.',
+      2: 'Explains error rates are high and asks for a refactoring sprint, but lacks clear agreement criteria.',
+      3: 'SRE-style negotiation: uses SLI/SLO metrics and remaining error budget; frames reliability as user retention; negotiates bounded stabilization sprint with clear exit criteria before resuming feature work.',
+      4: 'Executive alignment: demonstrates how instability directly impacts revenue/churn, proposes paired delivery (shipping critical bug fixes alongside modular feature scope), and establishes formal error budget policies.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Look for data-backed negotiation, user empathy, and constructive prioritization.'
+  },
+  {
+    id: 'be-i-project-buy-build',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'The team is choosing between a managed queue and a small database-backed queue for a prototype. Compare the options using workload, operational effort and migration cost.',
+    followUp: 'What telemetry would trigger a decision to migrate from a Postgres SKIP LOCKED queue to a managed system like SQS or Kafka?',
+    concepts: ['Actual throughput/reliability needs', 'Operational and cost constraints', 'Reversible decision with review trigger'],
+    anchors: {
+      0: 'Insists on Kafka for a prototype with 10 jobs a day, or rejects all cloud services out of dogma.',
+      1: 'Compares the options superficially without considering operational burden, cost, or workload requirements.',
+      2: 'Recognizes that Postgres is simpler for a prototype while managed queues scale better, but lacks concrete decision metrics.',
+      3: 'Pragmatic trade-off framework: prototype volume (e.g. 50 jobs/min) is easily served by Postgres `SKIP LOCKED` without extra infra; managed queue adds operational overhead; defines clear metrics (e.g. 5,000 QPS, table bloat) to trigger migration.',
+      4: 'Principal-level pragmatism: evaluates total cost of ownership (TCO), vendor lock-in, transactional outbox advantages of DB queues (atomic DB write + enqueue), and reversibility of architectural decisions.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Reward pragmatic simplicity for prototypes coupled with clear, metric-driven migration triggers.'
+  },
+  {
+    id: 'be-i-project-review',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs', 'apis'],
+    prompt: 'A teammate\'s change removes an ownership check to fix a demo bug. How would you review the change and help deliver a working demo without exposing other users\' data?',
+    followUp: 'What static analysis, linter rule, or architectural test would you implement to prevent authorization checks from being accidentally removed in future PRs?',
+    concepts: ['Explain concrete authorization risk', 'Find minimal safe fix', 'Test cross-user access before release'],
+    anchors: {
+      0: 'Approves the PR to hit demo deadline, introducing critical security vulnerability.',
+      1: 'Rejects PR aggressively without helping the author find an alternative safe fix for the demo.',
+      2: 'Explains the authorization security risk (IDOR), but leaves the author stuck with a broken demo.',
+      3: 'Collaborative security leadership: explains the concrete authorization vulnerability (cross-user data leak); pairs with teammate to diagnose why the check failed and implement the minimal safe fix; adds automated cross-user test.',
+      4: 'Security champion: balances business urgency with uncompromising data security; delivers working demo fix; introduces automated multi-tenant authorization tests in CI to permanently prevent regression.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Evaluates ability to hold security boundaries while collaborating on deliverable solutions.'
+  },
+  {
+    id: 'be-i-project-incident-postmortem',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['reliability', 'project_tradeoffs'],
+    prompt: 'A bad database migration caused a 45-minute production outage during peak hours. How do you lead a blameless post-mortem meeting and ensure concrete preventative actions are scheduled?',
+    followUp: 'How do you handle a situation where executive management demands to know which specific developer ran the migration?',
+    concepts: ['Blameless culture focused on process/safeguards', 'Timeline reconstruction from logs/metrics', 'Action items with owners: pre-deployment schema verification, automated rollbacks'],
+    anchors: {
+      0: 'Points fingers at the developer who clicked run and suggests punishing them.',
+      1: 'Holds a meeting, but it devolves into defensiveness and produces no concrete action items.',
+      2: 'Reconstructs the timeline of the outage, but action items are vague (e.g. "be more careful next time").',
+      3: 'Blameless post-mortem leadership: establishes timeline from monitoring; shifts focus from human error to missing systemic guardrails; protects team from blame; produces actionable items (automated migration testing in CI, migration runbook, pre-flight checks).',
+      4: 'Engineering cultural excellence: reframes failure as a systemic learning opportunity; creates automated guardrails (e.g. non-blocking DDL linters, canary migrations); tracks preventative action items to completion in sprint planning.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Blameless culture and systemic guardrails over human blame are the essential criteria.'
+  },
+  {
+    id: 'be-i-project-architecture-evolution',
+    level: 'intermediate',
+    stage: 'techno_managerial',
+    topics: ['project_tradeoffs'],
+    prompt: 'A monolithic service is becoming hard to deploy because three teams commit to it daily. Outline your criteria for deciding when to extract a microservice versus modularizing the monolith, and how you prevent distributed monolith anti-patterns.',
+    followUp: 'What is the biggest operational hidden cost teams encounter when moving from a modular monolith to microservices?',
+    concepts: ['Clear domain boundaries and independent deployability', 'Network latency, failure domain, and distributed transaction costs', 'Modular monolith as a pragmatic intermediate step'],
+    anchors: {
+      0: 'Advocates breaking everything into microservices immediately without considering operational complexity.',
+      1: 'Suggests microservices, but shares a single database across all services, creating a distributed monolith.',
+      2: 'Compares monolith vs microservices on deployment speed, but misses operational costs like distributed tracing, observability, and network latency.',
+      3: 'Structured architectural decision: evaluate domain boundaries (DDD); consider modular monolith first (enforcing module boundaries in code); criteria for microservices: independent scaling, different deployment cadences, separate database ownership.',
+      4: 'Strategic technical leadership: analyzes the high operational overhead of microservices (distributed tracing, network latency, partial failures, CI/CD pipelines, eventual consistency) and presents a phased, evolutionary roadmap.'
+    },
+    rubricNotes: 'Techno-managerial scoring. Evaluates deep architectural maturity, avoiding microservice hype, and emphasizing modular boundaries.'
+  },
+  {
+    id: 'be-i-reflect-assumption',
+    level: 'intermediate',
+    stage: 'reflection',
+    topics: ['project_tradeoffs'],
+    prompt: 'Identify an assumption in one of your designs today that could fail at larger scale. What measurement would tell you when to revisit it?',
+    followUp: 'What would be the first metric alert that signals this assumption is breaking in production?',
+    concepts: ['Specific assumption', 'Observable threshold', 'Proportionate redesign trigger'],
+    anchors: {
+      0: 'Cannot identify any assumptions or claims their designs are infinitely scalable.',
+      1: 'Names a vague scaling challenge (e.g. "too much data") without any specific metric or trigger.',
+      2: 'Identifies an assumption (e.g. single database read replica), but lacks an observable threshold trigger.',
+      3: 'Self-aware architectural critique: identifies a concrete assumption (e.g. in-memory caching capacity, synchronous database calls); defines an observable threshold (e.g. p99 latency > 300ms, DB connection pool > 80%) that triggers refactoring.',
+      4: 'Mastery of operational boundaries: clearly articulates failure modes of current design, defines leading indicator telemetry, and outlines the planned architectural transition when thresholds are crossed.'
+    },
+    rubricNotes: 'Unscored context/reflection. Rewarding honest architectural humility, quantitative thresholds, and awareness of scale limits.'
+  },
+  {
+    id: 'be-i-reflect-test',
+    level: 'intermediate',
+    stage: 'reflection',
+    topics: ['reliability'],
+    prompt: 'Choose one failure case discussed today and outline the smallest test that would reveal it. What would a passing result prove, and what would remain unproven?',
+    followUp: 'How do you test for concurrency race conditions in an automated CI pipeline where timing is non-deterministic?',
+    concepts: ['Concrete reproducible failure', 'Clear assertion', 'Honest limits of test coverage'],
+    anchors: {
+      0: 'Claims testing failure cases is impossible or unnecessary if code is written well.',
+      1: 'Describes a generic test that only checks happy paths without asserting failure conditions.',
+      2: 'Outlines a test for a failure case (e.g. concurrent order requests), but cannot articulate what remains unproven.',
+      3: 'Crisp testing design: defines smallest reproducible test (e.g. two concurrent `Promise.all` requests against 1 stock); asserts exact expected error code; honestly articulates what passes (code logic) vs what remains unproven (network jitter, distributed clock skew).',
+      4: 'Testing excellence: differentiates unit, integration, and chaos testing boundaries; addresses non-deterministic timing via repeat loops or transactional fault injection; explains the limits of automated testing.'
+    },
+    rubricNotes: 'Unscored context/reflection. Evaluates testing philosophy, boundary awareness, and intellectual honesty.'
+  },
+  {
+    id: 'be-i-reflect-tradeoff-regret',
+    level: 'intermediate',
+    stage: 'reflection',
+    topics: ['project_tradeoffs'],
+    prompt: 'Describe an architectural decision you made in the past that you now disagree with or would design differently today. What changed your perspective, and what would your revised design look like?',
+    followUp: 'What lesson from that experience do you apply when evaluating new designs today?',
+    concepts: ['Retrospective critical thinking', 'Recognition of unintended consequences or scale changes', 'Technically sound revised design'],
+    anchors: {
+      0: 'Claims they have never made an architectural mistake or would never change any past decision.',
+      1: 'Mentions a regret, but attributes it solely to bad luck or team members rather than technical design choices.',
+      2: 'Describes a design they would change, but the revised approach is vague or introduces equal problems.',
+      3: 'Thoughtful retrospective: clearly articulates an original decision (e.g. premature microservices, over-indexing, missing idempotency); explains the unintended consequences; outlines a solid, mature revised design.',
+      4: 'Profound engineering maturity: explains the evolution of their mental model, discusses trade-offs with humility, and shares how the lesson directly informs their current architectural evaluation framework.'
+    },
+    rubricNotes: 'Unscored context/reflection. Evaluates wisdom, humility, and ability to learn from architectural missteps.'
+  }
+];
+
+// Write updated backend-developer.questions.json (48 questions total)
+fs.writeFileSync(
+  path.join(seedsDir, 'backend-developer.questions.json'),
+  JSON.stringify(questions, null, 2) + '\n'
+);
+console.log(`Updated backend-developer.questions.json with ${questions.length} questions`);
+
+// Generate constraint scenarios data (8 scenarios: 4 Junior, 4 Intermediate)
+const constraintScenarios = [
+  {
+    id: 'scen-j-db-offline',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'junior',
+    stage: 'technical',
+    baselineQuestionId: 'be-j-concurrency-stock',
+    baselinePrompt: 'An item has one unit left. Two requests both read the stock as one and both place an order. Explain a database approach that prevents selling two units.',
+    changedConstraint: 'The application must now operate inside offline pop-up store kiosks with intermittent, delayed internet sync to the central warehouse.',
+    followUp: 'How do you avoid overselling when two offline kiosks both sell the last unit before syncing?',
+    expectedReasoningPoints: [
+      'Partitioning or allocating inventory quota per kiosk in advance',
+      'Optimistic selling with explicit compensation/backorder/refund workflow',
+      'Requiring an online connectivity check only when stock falls below a low-water threshold'
+    ],
+    rubricAnchors: {
+      0: 'Assumes offline kiosks can magically talk to each other without network connectivity.',
+      1: 'Recognizes the problem, but has no mechanism to resolve or compensate for double sales upon reconnection.',
+      2: 'Proposes pre-allocating inventory to kiosks, but does not handle kiosk running out of stock while another has spare.',
+      3: 'Proposes sound offline strategy: allocate physical stock units to each kiosk locally, or allow optimistic sale with automated compensation/backorder handling upon sync.',
+      4: 'Production offline architecture: evaluates pre-allocation vs optimistic oversubscription with business compensation, conflict-resolution timestamps during sync, and low-stock online enforcement.'
+    }
+  },
+  {
+    id: 'scen-j-api-traffic-spike',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'junior',
+    stage: 'technical',
+    baselineQuestionId: 'be-j-api-pagination',
+    baselinePrompt: 'A task list now has 100,000 records. How would you change its API so clients do not download every record at once?',
+    changedConstraint: 'Traffic surges to 50,000 requests per second, and users add 1,000 new tasks per minute continuously.',
+    followUp: 'Why does OFFSET 90000 LIMIT 50 degrade under this load, and how does cursor-based pagination protect database memory?',
+    expectedReasoningPoints: [
+      'B-tree index scan vs scanning and discarding 90,000 offset rows',
+      'Cursor pagination using WHERE id > last_seen_id ORDER BY id LIMIT 50',
+      'Stable pagination window that prevents missing or duplicate rows upon concurrent inserts'
+    ],
+    rubricAnchors: {
+      0: 'Suggests caching all 100,000 records in client browsers.',
+      1: 'Suggests increasing server RAM without changing the offset query.',
+      2: 'Knows offset is slow on deep pages, but cannot explain why the database has to scan preceding rows.',
+      3: 'Explains that `OFFSET 90000` scans and discards 90,000 rows; demonstrates keyset/cursor pagination (`WHERE id > cursor LIMIT 50`) using an index seek.',
+      4: 'Deep performance analysis: explains index seek vs scan, constant-time execution across arbitrary depths, and prevention of offset insertion drift.'
+    }
+  },
+  {
+    id: 'scen-j-storage-cost',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'junior',
+    stage: 'technical',
+    baselineQuestionId: 'be-j-reliability-logs',
+    baselinePrompt: 'A user says saving a task failed yesterday. What information would you log to investigate, and what information should stay out of the logs?',
+    changedConstraint: 'Log storage costs exceed budget by 400%, and disk write I/O is slowing down the primary API database.',
+    followUp: 'How do you maintain auditability and debuggability while cutting log volume by 80%?',
+    expectedReasoningPoints: [
+      'Dynamic log levels (INFO/WARN in production, DEBUG disabled)',
+      'Sampling high-volume successful 2xx requests while logging 100% of 4xx and 5xx errors',
+      'Asynchronous non-blocking log shipping'
+    ],
+    rubricAnchors: {
+      0: 'Turns off logging completely in production.',
+      1: 'Deletes logs every hour, destroying ability to investigate yesterday\'s bugs.',
+      2: 'Changes log level to ERROR, but loses visibility into user audit trails and request timing.',
+      3: 'Practical cost optimization: log sampling (e.g. sample 1% of 200 OKs, retain 100% of errors), dynamic log level configuration, and moving logs off primary database disk.',
+      4: 'Enterprise telemetry optimization: structured sampling, metric emission instead of verbose log lines for normal paths, tiered retention storage (hot vs cold S3), and asynchronous log aggregation.'
+    }
+  },
+  {
+    id: 'scen-j-read-heavy-cache',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'junior',
+    stage: 'technical',
+    baselineQuestionId: 'be-j-db-index',
+    baselinePrompt: 'Listing a user\'s tasks becomes slow as the table grows. What would you investigate, and when might an index on user_id help?',
+    changedConstraint: 'The database CPU is pinned at 98% because 99% of requests are identical queries for the same 10 celebrity users.',
+    followUp: 'Why does adding another index fail to solve this, and how would you introduce a cache layer?',
+    expectedReasoningPoints: [
+      'Index still consumes database CPU and connection pool resources per query',
+      'In-memory caching layer (Redis / Memcached / application cache) with TTL',
+      'Cache invalidation strategy when a celebrity updates tasks'
+    ],
+    rubricAnchors: {
+      0: 'Adds 5 more indexes on the database table.',
+      1: 'Recognizes cache is needed, but puts cache after database query in request lifecycle.',
+      2: 'Adds Redis cache for celebrity users, but has no invalidation or TTL strategy.',
+      3: 'Clear architectural intervention: explains why index reads still saturate DB CPU; places Redis cache in front of DB; sets short TTL or event-driven invalidation on task write.',
+      4: 'High-concurrency cache design: Cache-Aside pattern, protects against cache stampede on celebrity keys via mutex locks or background warming, and monitors cache hit ratio.'
+    }
+  },
+  {
+    id: 'scen-i-distributed-transfer',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'intermediate',
+    stage: 'technical',
+    baselineQuestionId: 'be-i-db-transfer',
+    baselinePrompt: 'A transfer debits one account and credits another. Describe transaction boundaries, concurrency controls and failure handling that prevent partial or double transfers.',
+    changedConstraint: 'Due to regulatory requirements, user accounts are now split across two completely independent database clusters in different data centers that cannot share a single ACID transaction.',
+    followUp: 'How do you ensure funds are not created or destroyed without a single database transaction?',
+    expectedReasoningPoints: [
+      'Saga pattern with compensating transactions or Two-Phase Commit (2PC)',
+      'Transactional outbox pattern with reliable message delivery',
+      'Idempotent debit and credit endpoints with pending transfer states'
+    ],
+    rubricAnchors: {
+      0: 'Executes debit and credit across databases without handling failure of the second call.',
+      1: 'Suggests distributed transaction without understanding latency or partitioned failure modes.',
+      2: 'Describes a Saga pattern, but lacks compensation mechanism if credit step fails.',
+      3: 'Robust distributed architecture: Saga pattern (Pending Transfer -> Debit Account A -> Message Outbox -> Credit Account B -> Completed); compensating transaction (refund Account A if Credit B fails permanently); idempotency on both ends.',
+      4: 'Financial systems mastery: details Choreography vs Orchestration Saga, transactional outbox to prevent dual-write bugs, reconciler cron job to detect hanging states, and at-least-once message guarantees.'
+    }
+  },
+  {
+    id: 'scen-i-idempotency-cluster',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'intermediate',
+    stage: 'technical',
+    baselineQuestionId: 'be-i-api-idempotency',
+    baselinePrompt: 'Design idempotency for POST /orders. Explain how concurrent requests with the same key are handled and what happens when the key is reused with a different body.',
+    changedConstraint: 'The service runs active-active in 3 AWS regions with 200ms inter-region replication latency.',
+    followUp: 'What happens if two concurrent requests with the same key hit Region US-East and Region EU-West simultaneously?',
+    expectedReasoningPoints: [
+      'Cross-region replication lag creates a split-brain race window for identical keys',
+      'Routing requests by user ID or idempotency key hash to a primary/home region',
+      'Global consensus or distributed locking for multi-region writes'
+    ],
+    rubricAnchors: {
+      0: 'Assumes database replication across oceans is instantaneous (0ms).',
+      1: 'Recognizes replication delay, but accepts duplicate order creation as unavoidable.',
+      2: 'Suggests cross-region database locks, but overlooks severe latency impact (200ms+ per request).',
+      3: 'Pragmatic distributed routing: route requests with the same key or user ID to a single designated primary region (deterministic hashing at edge/CloudFront), keeping idempotency checks local and fast.',
+      4: 'Global architecture expertise: evaluates regional affinity routing vs distributed consensus (CockroachDB/Spanner), details asynchronous reconciliation, and explains trade-offs between availability and consistency under CAP theorem.'
+    }
+  },
+  {
+    id: 'scen-i-cache-stampede-burst',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'intermediate',
+    stage: 'technical',
+    baselineQuestionId: 'be-i-reliability-cache',
+    baselinePrompt: 'You cache product availability, but inventory changes frequently. Describe what may safely use the cache and where authoritative checks must still occur.',
+    changedConstraint: 'Flash sale launch: 500,000 users refresh the exact same product page at the exact second the cache TTL expires.',
+    followUp: 'How do you protect the database from crashing under the stampede?',
+    expectedReasoningPoints: [
+      'Cache stampede / thundering herd problem where 500k requests miss cache simultaneously and hit DB',
+      'Distributed mutex lock on cache miss (only 1 thread queries DB; others wait or receive stale data)',
+      'Probabilistic early expiration (XFetch algorithm) or proactive background cache warming'
+    ],
+    rubricAnchors: {
+      0: 'Suggests setting TTL to 0 or restarting the database when it crashes.',
+      1: 'Suggests infinite TTL without explaining how inventory updates ever get reflected.',
+      2: 'Explains cache stampede, but mutex locking approach still blocks all 500k client requests.',
+      3: 'Solves stampede: (a) Mutex locking on cache miss so only 1 worker queries DB while others wait or serve stale cache; OR (b) Background cache warming before expiry.',
+      4: 'Advanced cache engineering: probabilistic early recomputation (XFetch), stale-while-revalidate headers, soft TTL vs hard TTL, and multi-tier edge CDN caching.'
+    }
+  },
+  {
+    id: 'scen-i-eventual-consistency-search',
+    role: 'backend_developer',
+    domain: 'computer_science',
+    level: 'intermediate',
+    stage: 'technical',
+    baselineQuestionId: 'be-i-concurrency-worker',
+    baselinePrompt: 'Two workers may pick the same pending job, and either can crash after doing work. How would you claim jobs safely and limit duplicate side effects?',
+    changedConstraint: 'Task records must now be indexed into an Elasticsearch cluster that has a 2-second refresh lag, but users expect immediate visibility of their edits.',
+    followUp: 'How do you present an immediate update in the UI without serving stale search results or hammering the primary database?',
+    expectedReasoningPoints: [
+      'Read-your-own-writes consistency vs eventual consistency for general search',
+      'Return updated entity directly in write API response to update client local state immediately',
+      'Query primary database by ID for own recent edits while search index catches up'
+    ],
+    rubricAnchors: {
+      0: 'Sets Elasticsearch refresh interval to 0ms, crashing the search cluster.',
+      1: 'Tells users they must wait 5 seconds before viewing their own edits.',
+      2: 'Suggests querying primary DB for all searches, defeating the purpose of Elasticsearch.',
+      3: 'Read-your-own-writes consistency: write API returns fresh updated object for client optimistic state; direct lookups by ID go to primary DB; full-text searches use Elasticsearch with explicit lag expectation.',
+      4: 'CQRS architecture: Command Query Responsibility Segregation, client-side optimistic UI updates, tracking user version/timestamp tokens to bypass search cache until index catches up.'
+    }
+  }
+];
+
+fs.writeFileSync(
+  path.join(seedsDir, 'constraint-scenarios.json'),
+  JSON.stringify(constraintScenarios, null, 2) + '\n'
+);
+console.log(`Generated ${constraintScenarios.length} constraint scenarios in constraint-scenarios.json`);
+
+// Generate retry variants data (8 comparable pairs for demo topics)
+const retryVariants = [
+  {
+    topic: 'concurrency_inventory',
+    domain: 'computer_science',
+    level: 'junior',
+    primaryQuestionId: 'be-j-concurrency-stock',
+    variantQuestionId: 'be-j-concurrency-counters',
+    skillTested: 'Preventing read-modify-write lost updates under concurrent access',
+    notes: 'Primary tests decrementing stock bounds; variant tests counter increment lost updates.'
+  },
+  {
+    topic: 'idempotency_retries',
+    domain: 'computer_science',
+    level: 'junior',
+    primaryQuestionId: 'be-j-concurrency-retry',
+    variantQuestionId: 'be-i-api-idempotency',
+    skillTested: 'Designing idempotency mechanisms to safely handle network retry duplicate requests',
+    notes: 'Junior tests conceptual key recognition; intermediate variant tests distributed reservation and payload hashing.'
+  },
+  {
+    topic: 'database_indexing',
+    domain: 'computer_science',
+    level: 'junior',
+    primaryQuestionId: 'be-j-db-index',
+    variantQuestionId: 'be-i-db-query-plan',
+    skillTested: 'Investigating query performance and designing effective B-tree indexes',
+    notes: 'Primary tests single-column user_id index; variant tests composite index column ordering and explain plans.'
+  },
+  {
+    topic: 'reliability_timeouts',
+    domain: 'computer_science',
+    level: 'junior',
+    primaryQuestionId: 'be-j-reliability-timeout',
+    variantQuestionId: 'be-i-reliability-circuit-breaker',
+    skillTested: 'Protecting server resources when downstream dependencies fail or hang',
+    notes: 'Primary tests HTTP request timeouts; variant tests full three-state circuit breaker pattern.'
+  },
+  {
+    topic: 'database_integrity',
+    domain: 'computer_science',
+    level: 'junior',
+    primaryQuestionId: 'be-j-db-uniqueness',
+    variantQuestionId: 'be-j-db-foreign-keys',
+    skillTested: 'Enforcing relational integrity and consistency at the database engine level',
+    notes: 'Primary tests UNIQUE constraints under concurrency; variant tests FOREIGN KEY referential integrity.'
+  },
+  {
+    topic: 'api_evolution',
+    domain: 'computer_science',
+    level: 'intermediate',
+    primaryQuestionId: 'be-j-api-validation',
+    variantQuestionId: 'be-i-api-versioning',
+    skillTested: 'Designing robust API contracts and managing backward-compatible field evolution',
+    notes: 'Primary tests input validation and error envelopes; variant tests expand-contract zero-downtime field deprecation.'
+  },
+  {
+    topic: 'distributed_concurrency',
+    domain: 'computer_science',
+    level: 'intermediate',
+    primaryQuestionId: 'be-i-concurrency-version',
+    variantQuestionId: 'be-i-concurrency-distributed-lock',
+    skillTested: 'Coordinating concurrent updates across distributed nodes without data loss',
+    notes: 'Primary tests optimistic concurrency with version numbers; variant tests distributed locks with TTL leases and fencing tokens.'
+  },
+  {
+    topic: 'caching_resilience',
+    domain: 'computer_science',
+    level: 'intermediate',
+    primaryQuestionId: 'be-i-reliability-cache',
+    variantQuestionId: 'be-i-api-rate-limiting',
+    skillTested: 'Using fast in-memory caches to protect database systems while maintaining correctness',
+    notes: 'Primary tests cache vs authoritative DB separation; variant tests Redis distributed rate limiting with sliding windows.'
+  }
+];
+
+fs.writeFileSync(
+  path.join(seedsDir, 'retry-variants.json'),
+  JSON.stringify(retryVariants, null, 2) + '\n'
+);
+console.log(`Generated ${retryVariants.length} retry variant pairs in retry-variants.json`);

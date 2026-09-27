@@ -1,0 +1,439 @@
+{
+  "description": "PanelIQ Backend Reproducible Error Fixtures for Frontend Engineers",
+  "version": "1.0.0",
+  "fixtures": {
+    "AUTH_REQUIRED": {
+      "statusCode": 401,
+      "scenario": "Client requests protected endpoint without Authorization Bearer header",
+      "request": {
+        "method": "GET",
+        "url": "/api/sessions",
+        "headers": {}
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "code": "AUTH_REQUIRED",
+            "message": "Authorization bearer token required",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "AUTH_INVALID": {
+      "statusCode": 401,
+      "scenario": "Client supplies an expired or cryptographically invalid Supabase JWT",
+      "request": {
+        "method": "GET",
+        "url": "/api/sessions",
+        "headers": {
+          "Authorization": "Bearer invalid.jwt.token"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "code": "AUTH_INVALID",
+            "message": "Invalid or expired token",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "SESSION_FORBIDDEN": {
+      "statusCode": 403,
+      "scenario": "Candidate attempts to access another candidate's session, replay, or unreleased report",
+      "request": {
+        "method": "GET",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000002/report",
+        "headers": {
+          "Authorization": "Bearer candidate_a_token"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "code": "EVALUATOR_REQUIRED",
+            "message": "Only evaluators or administrators can access unreleased reports or other candidates' sessions",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "EVALUATOR_REQUIRED": {
+      "statusCode": 403,
+      "scenario": "Candidate role attempts an action restricted to evaluators (e.g. releasing a report or overriding evaluations)",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/report/release",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        },
+        "body": {
+          "summary": "Candidate attempted release"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "code": "EVALUATOR_REQUIRED",
+            "message": "Only evaluators or administrators can release reports",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "ASSIGNMENT_REQUIRED": {
+      "statusCode": 403,
+      "scenario": "Evaluator attempts to review, override, or release a session they are not assigned to",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000002/report/release",
+        "headers": {
+          "Authorization": "Bearer unassigned_evaluator_token"
+        },
+        "body": {
+          "summary": "Unassigned release attempt"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "code": "ASSIGNMENT_REQUIRED",
+            "message": "You are not assigned to review this session",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "SESSION_NOT_FOUND": {
+      "statusCode": 404,
+      "scenario": "Client requests a session that does not exist or is not owned by the candidate",
+      "request": {
+        "method": "GET",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000999",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "code": "SESSION_NOT_FOUND",
+            "message": "Session not found",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "ANSWER_NOT_FOUND": {
+      "statusCode": 404,
+      "scenario": "Client attempts to retry an answer ID that does not exist or does not belong to the session",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/answers/00000000-0000-0000-0000-000000000999/retry",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "code": "ANSWER_NOT_FOUND",
+            "message": "Source answer not found",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "IDEMPOTENCY_CONFLICT": {
+      "statusCode": 409,
+      "scenario": "Client repeats a request with the same idempotency key but different payload body",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/answers",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        },
+        "body": {
+          "idempotencyKey": "used-key-1234",
+          "baseVersion": 3,
+          "answerText": "Conflicting payload with different answer text"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "IDEMPOTENCY_CONFLICT",
+            "message": "Idempotency key has already been used with different request parameters",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "SESSION_STALE": {
+      "statusCode": 409,
+      "scenario": "Client submits an answer with a stale baseVersion (e.g. from an out-of-sync browser tab)",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/answers",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        },
+        "body": {
+          "idempotencyKey": "new-key-5678",
+          "baseVersion": 2,
+          "answerText": "Answer submitted from a background stale tab"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "SESSION_STALE",
+            "message": "Session has been modified by another action. Please refresh state.",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "TURN_NOT_CURRENT": {
+      "statusCode": 409,
+      "scenario": "Client attempts to submit an answer for a turn that is not the active current turn",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/answers",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        },
+        "body": {
+          "idempotencyKey": "key-9999",
+          "baseVersion": 4,
+          "turnId": "00000000-0000-0000-0000-000000000001",
+          "answerText": "Trying to answer turn 1 when turn 3 is active"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "TURN_NOT_CURRENT",
+            "message": "Turn is not the current active interview turn",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "SESSION_INCOMPLETE": {
+      "statusCode": 409,
+      "scenario": "Client attempts to complete the session before all turns are answered",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/complete",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        },
+        "body": {
+          "baseVersion": 4
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "SESSION_INCOMPLETE",
+            "message": "All interview turns must be answered before completing session",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "SCORING_PENDING": {
+      "statusCode": 409,
+      "scenario": "Evaluator attempts to release report while required criteria or turns have pending evaluations",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/report/release",
+        "headers": {
+          "Authorization": "Bearer evaluator_token"
+        },
+        "body": {
+          "summary": "Attempting release before evaluation finishes"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "SCORING_PENDING",
+            "message": "Evaluation for criterion \"reasoning\" on turn 2 is still pending",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "REVISION_IMMUTABLE": {
+      "statusCode": 409,
+      "scenario": "System or client attempts to overwrite or mutate an already released report revision",
+      "request": {
+        "method": "PATCH",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/report",
+        "headers": {
+          "Authorization": "Bearer evaluator_token"
+        },
+        "body": {
+          "summary": "Attempting to edit released report"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "REVISION_IMMUTABLE",
+            "message": "Released report revisions are immutable and cannot be overwritten",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "RETRY_NOT_AVAILABLE": {
+      "statusCode": 409,
+      "scenario": "Candidate attempts to retry an answer for an unscored stage or a question with no approved variant",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/answers/icebreaker-ans-1/retry",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "RETRY_NOT_AVAILABLE",
+            "message": "Retries are only available for scored technical and design questions",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "RETRY_LIMIT_REACHED": {
+      "statusCode": 409,
+      "scenario": "Candidate attempts to create a second retry for an answer that has already completed a retry attempt",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/answers/ans-1/retry",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "code": "RETRY_LIMIT_REACHED",
+            "message": "This answer has already reached its maximum retry attempt limit (1)",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "INVALID_EVIDENCE": {
+      "statusCode": 400,
+      "scenario": "Evidence object fails server-side validation (offset out of bounds, excerpt mismatch, or fabricated quote)",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/evaluations/eval-1/evidence",
+        "headers": {
+          "Authorization": "Bearer evaluator_token"
+        },
+        "body": {
+          "start": 100,
+          "end": 200,
+          "excerpt": "Fabricated text not in answer"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": {
+            "code": "INVALID_EVIDENCE",
+            "message": "Evidence excerpt does not match candidate answer substring at [100:200]",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "AI_UNAVAILABLE": {
+      "statusCode": 503,
+      "scenario": "Both primary and secondary AI providers failed (rate-limited, timed out, or unconfigured)",
+      "request": {
+        "method": "POST",
+        "url": "/api/sessions/00000000-0000-0000-0000-000000000001/evaluate",
+        "headers": {
+          "Authorization": "Bearer system_or_evaluator_token"
+        }
+      },
+      "response": {
+        "status": 503,
+        "body": {
+          "error": {
+            "code": "AI_UNAVAILABLE",
+            "message": "All AI evaluation providers exhausted; evaluations remain pending for human review",
+            "retryable": true
+          }
+        }
+      }
+    },
+    "INVALID_PROVIDER_OUTPUT": {
+      "statusCode": 502,
+      "scenario": "AI provider returned malformed JSON or schema violation failing server-side validation",
+      "request": {
+        "method": "POST",
+        "url": "/api/jobs/claim-and-process",
+        "headers": {
+          "Authorization": "Bearer worker_token"
+        }
+      },
+      "response": {
+        "status": 502,
+        "body": {
+          "error": {
+            "code": "INVALID_PROVIDER_OUTPUT",
+            "message": "AI provider returned invalid JSON or schema violation; job leased for retry",
+            "retryable": true
+          }
+        }
+      }
+    },
+    "DATABASE_UNAVAILABLE": {
+      "statusCode": 503,
+      "scenario": "Underlying Supabase database or network connection timed out or is temporarily unreachable",
+      "request": {
+        "method": "GET",
+        "url": "/api/sessions",
+        "headers": {
+          "Authorization": "Bearer candidate_token"
+        }
+      },
+      "response": {
+        "status": 503,
+        "body": {
+          "error": {
+            "code": "DATABASE_UNAVAILABLE",
+            "message": "Database connection failed or timed out",
+            "retryable": true
+          }
+        }
+      }
+    }
+  }
+}

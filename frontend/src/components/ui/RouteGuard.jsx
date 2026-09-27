@@ -76,7 +76,7 @@ export function RequireRole({ allowedRoles = ['admin'], children }) {
         </div>
 
         <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '0.75rem' }}>
-          403 — Administrator Access Required
+          403 — {allowedRoles.includes('admin') && allowedRoles.length === 1 ? 'Administrator' : allowedRoles.includes('evaluator') ? 'Evaluator' : 'Authorized'} Access Required
         </h1>
 
         <p
@@ -88,7 +88,7 @@ export function RequireRole({ allowedRoles = ['admin'], children }) {
             marginBottom: '1.75rem',
           }}
         >
-          This area is restricted to approved administrators. Your current session ({user.email}) is signed in as <strong>{role}</strong>. Frontend route guards are advisory; backend authorization remains authoritative.
+          This area is restricted to approved {allowedRoles.join(' or ')} accounts. Your current session ({user.email}) is signed in as <strong>{role}</strong>. Frontend route guards are advisory; backend authorization remains authoritative.
         </p>
 
         {devMode && (

@@ -1,0 +1,186 @@
+[
+  {
+    "id": "scen-j-db-offline",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "junior",
+    "stage": "technical",
+    "baselineQuestionId": "be-j-concurrency-stock",
+    "baselinePrompt": "An item has one unit left. Two requests both read the stock as one and both place an order. Explain a database approach that prevents selling two units.",
+    "changedConstraint": "The application must now operate inside offline pop-up store kiosks with intermittent, delayed internet sync to the central warehouse.",
+    "followUp": "How do you avoid overselling when two offline kiosks both sell the last unit before syncing?",
+    "expectedReasoningPoints": [
+      "Partitioning or allocating inventory quota per kiosk in advance",
+      "Optimistic selling with explicit compensation/backorder/refund workflow",
+      "Requiring an online connectivity check only when stock falls below a low-water threshold"
+    ],
+    "rubricAnchors": {
+      "0": "Assumes offline kiosks can magically talk to each other without network connectivity.",
+      "1": "Recognizes the problem, but has no mechanism to resolve or compensate for double sales upon reconnection.",
+      "2": "Proposes pre-allocating inventory to kiosks, but does not handle kiosk running out of stock while another has spare.",
+      "3": "Proposes sound offline strategy: allocate physical stock units to each kiosk locally, or allow optimistic sale with automated compensation/backorder handling upon sync.",
+      "4": "Production offline architecture: evaluates pre-allocation vs optimistic oversubscription with business compensation, conflict-resolution timestamps during sync, and low-stock online enforcement."
+    }
+  },
+  {
+    "id": "scen-j-api-traffic-spike",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "junior",
+    "stage": "technical",
+    "baselineQuestionId": "be-j-api-pagination",
+    "baselinePrompt": "A task list now has 100,000 records. How would you change its API so clients do not download every record at once?",
+    "changedConstraint": "Traffic surges to 50,000 requests per second, and users add 1,000 new tasks per minute continuously.",
+    "followUp": "Why does OFFSET 90000 LIMIT 50 degrade under this load, and how does cursor-based pagination protect database memory?",
+    "expectedReasoningPoints": [
+      "B-tree index scan vs scanning and discarding 90,000 offset rows",
+      "Cursor pagination using WHERE id > last_seen_id ORDER BY id LIMIT 50",
+      "Stable pagination window that prevents missing or duplicate rows upon concurrent inserts"
+    ],
+    "rubricAnchors": {
+      "0": "Suggests caching all 100,000 records in client browsers.",
+      "1": "Suggests increasing server RAM without changing the offset query.",
+      "2": "Knows offset is slow on deep pages, but cannot explain why the database has to scan preceding rows.",
+      "3": "Explains that `OFFSET 90000` scans and discards 90,000 rows; demonstrates keyset/cursor pagination (`WHERE id > cursor LIMIT 50`) using an index seek.",
+      "4": "Deep performance analysis: explains index seek vs scan, constant-time execution across arbitrary depths, and prevention of offset insertion drift."
+    }
+  },
+  {
+    "id": "scen-j-storage-cost",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "junior",
+    "stage": "technical",
+    "baselineQuestionId": "be-j-reliability-logs",
+    "baselinePrompt": "A user says saving a task failed yesterday. What information would you log to investigate, and what information should stay out of the logs?",
+    "changedConstraint": "Log storage costs exceed budget by 400%, and disk write I/O is slowing down the primary API database.",
+    "followUp": "How do you maintain auditability and debuggability while cutting log volume by 80%?",
+    "expectedReasoningPoints": [
+      "Dynamic log levels (INFO/WARN in production, DEBUG disabled)",
+      "Sampling high-volume successful 2xx requests while logging 100% of 4xx and 5xx errors",
+      "Asynchronous non-blocking log shipping"
+    ],
+    "rubricAnchors": {
+      "0": "Turns off logging completely in production.",
+      "1": "Deletes logs every hour, destroying ability to investigate yesterday's bugs.",
+      "2": "Changes log level to ERROR, but loses visibility into user audit trails and request timing.",
+      "3": "Practical cost optimization: log sampling (e.g. sample 1% of 200 OKs, retain 100% of errors), dynamic log level configuration, and moving logs off primary database disk.",
+      "4": "Enterprise telemetry optimization: structured sampling, metric emission instead of verbose log lines for normal paths, tiered retention storage (hot vs cold S3), and asynchronous log aggregation."
+    }
+  },
+  {
+    "id": "scen-j-read-heavy-cache",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "junior",
+    "stage": "technical",
+    "baselineQuestionId": "be-j-db-index",
+    "baselinePrompt": "Listing a user's tasks becomes slow as the table grows. What would you investigate, and when might an index on user_id help?",
+    "changedConstraint": "The database CPU is pinned at 98% because 99% of requests are identical queries for the same 10 celebrity users.",
+    "followUp": "Why does adding another index fail to solve this, and how would you introduce a cache layer?",
+    "expectedReasoningPoints": [
+      "Index still consumes database CPU and connection pool resources per query",
+      "In-memory caching layer (Redis / Memcached / application cache) with TTL",
+      "Cache invalidation strategy when a celebrity updates tasks"
+    ],
+    "rubricAnchors": {
+      "0": "Adds 5 more indexes on the database table.",
+      "1": "Recognizes cache is needed, but puts cache after database query in request lifecycle.",
+      "2": "Adds Redis cache for celebrity users, but has no invalidation or TTL strategy.",
+      "3": "Clear architectural intervention: explains why index reads still saturate DB CPU; places Redis cache in front of DB; sets short TTL or event-driven invalidation on task write.",
+      "4": "High-concurrency cache design: Cache-Aside pattern, protects against cache stampede on celebrity keys via mutex locks or background warming, and monitors cache hit ratio."
+    }
+  },
+  {
+    "id": "scen-i-distributed-transfer",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "intermediate",
+    "stage": "technical",
+    "baselineQuestionId": "be-i-db-transfer",
+    "baselinePrompt": "A transfer debits one account and credits another. Describe transaction boundaries, concurrency controls and failure handling that prevent partial or double transfers.",
+    "changedConstraint": "Due to regulatory requirements, user accounts are now split across two completely independent database clusters in different data centers that cannot share a single ACID transaction.",
+    "followUp": "How do you ensure funds are not created or destroyed without a single database transaction?",
+    "expectedReasoningPoints": [
+      "Saga pattern with compensating transactions or Two-Phase Commit (2PC)",
+      "Transactional outbox pattern with reliable message delivery",
+      "Idempotent debit and credit endpoints with pending transfer states"
+    ],
+    "rubricAnchors": {
+      "0": "Executes debit and credit across databases without handling failure of the second call.",
+      "1": "Suggests distributed transaction without understanding latency or partitioned failure modes.",
+      "2": "Describes a Saga pattern, but lacks compensation mechanism if credit step fails.",
+      "3": "Robust distributed architecture: Saga pattern (Pending Transfer -> Debit Account A -> Message Outbox -> Credit Account B -> Completed); compensating transaction (refund Account A if Credit B fails permanently); idempotency on both ends.",
+      "4": "Financial systems mastery: details Choreography vs Orchestration Saga, transactional outbox to prevent dual-write bugs, reconciler cron job to detect hanging states, and at-least-once message guarantees."
+    }
+  },
+  {
+    "id": "scen-i-idempotency-cluster",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "intermediate",
+    "stage": "technical",
+    "baselineQuestionId": "be-i-api-idempotency",
+    "baselinePrompt": "Design idempotency for POST /orders. Explain how concurrent requests with the same key are handled and what happens when the key is reused with a different body.",
+    "changedConstraint": "The service runs active-active in 3 AWS regions with 200ms inter-region replication latency.",
+    "followUp": "What happens if two concurrent requests with the same key hit Region US-East and Region EU-West simultaneously?",
+    "expectedReasoningPoints": [
+      "Cross-region replication lag creates a split-brain race window for identical keys",
+      "Routing requests by user ID or idempotency key hash to a primary/home region",
+      "Global consensus or distributed locking for multi-region writes"
+    ],
+    "rubricAnchors": {
+      "0": "Assumes database replication across oceans is instantaneous (0ms).",
+      "1": "Recognizes replication delay, but accepts duplicate order creation as unavoidable.",
+      "2": "Suggests cross-region database locks, but overlooks severe latency impact (200ms+ per request).",
+      "3": "Pragmatic distributed routing: route requests with the same key or user ID to a single designated primary region (deterministic hashing at edge/CloudFront), keeping idempotency checks local and fast.",
+      "4": "Global architecture expertise: evaluates regional affinity routing vs distributed consensus (CockroachDB/Spanner), details asynchronous reconciliation, and explains trade-offs between availability and consistency under CAP theorem."
+    }
+  },
+  {
+    "id": "scen-i-cache-stampede-burst",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "intermediate",
+    "stage": "technical",
+    "baselineQuestionId": "be-i-reliability-cache",
+    "baselinePrompt": "You cache product availability, but inventory changes frequently. Describe what may safely use the cache and where authoritative checks must still occur.",
+    "changedConstraint": "Flash sale launch: 500,000 users refresh the exact same product page at the exact second the cache TTL expires.",
+    "followUp": "How do you protect the database from crashing under the stampede?",
+    "expectedReasoningPoints": [
+      "Cache stampede / thundering herd problem where 500k requests miss cache simultaneously and hit DB",
+      "Distributed mutex lock on cache miss (only 1 thread queries DB; others wait or receive stale data)",
+      "Probabilistic early expiration (XFetch algorithm) or proactive background cache warming"
+    ],
+    "rubricAnchors": {
+      "0": "Suggests setting TTL to 0 or restarting the database when it crashes.",
+      "1": "Suggests infinite TTL without explaining how inventory updates ever get reflected.",
+      "2": "Explains cache stampede, but mutex locking approach still blocks all 500k client requests.",
+      "3": "Solves stampede: (a) Mutex locking on cache miss so only 1 worker queries DB while others wait or serve stale cache; OR (b) Background cache warming before expiry.",
+      "4": "Advanced cache engineering: probabilistic early recomputation (XFetch), stale-while-revalidate headers, soft TTL vs hard TTL, and multi-tier edge CDN caching."
+    }
+  },
+  {
+    "id": "scen-i-eventual-consistency-search",
+    "role": "backend_developer",
+    "domain": "computer_science",
+    "level": "intermediate",
+    "stage": "technical",
+    "baselineQuestionId": "be-i-concurrency-worker",
+    "baselinePrompt": "Two workers may pick the same pending job, and either can crash after doing work. How would you claim jobs safely and limit duplicate side effects?",
+    "changedConstraint": "Task records must now be indexed into an Elasticsearch cluster that has a 2-second refresh lag, but users expect immediate visibility of their edits.",
+    "followUp": "How do you present an immediate update in the UI without serving stale search results or hammering the primary database?",
+    "expectedReasoningPoints": [
+      "Read-your-own-writes consistency vs eventual consistency for general search",
+      "Return updated entity directly in write API response to update client local state immediately",
+      "Query primary database by ID for own recent edits while search index catches up"
+    ],
+    "rubricAnchors": {
+      "0": "Sets Elasticsearch refresh interval to 0ms, crashing the search cluster.",
+      "1": "Tells users they must wait 5 seconds before viewing their own edits.",
+      "2": "Suggests querying primary DB for all searches, defeating the purpose of Elasticsearch.",
+      "3": "Read-your-own-writes consistency: write API returns fresh updated object for client optimistic state; direct lookups by ID go to primary DB; full-text searches use Elasticsearch with explicit lag expectation.",
+      "4": "CQRS architecture: Command Query Responsibility Segregation, client-side optimistic UI updates, tracking user version/timestamp tokens to bypass search cache until index catches up."
+    }
+  }
+]

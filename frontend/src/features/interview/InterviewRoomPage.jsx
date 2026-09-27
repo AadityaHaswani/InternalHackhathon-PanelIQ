@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
+import { getMutationKey } from '../../lib/session-mutation';
 import { apiClient, ApiClientError } from '../../lib/api-client';
 import { Button } from '../../components/ui/Button';
 import { Dialog, DialogFooter } from '../../components/ui/Dialog';
@@ -56,7 +57,7 @@ function getDraftStorageKey(userId, sessionId, turnId) {
 export function InterviewRoomPage() {
   const { id: sessionId } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, devMode } = useAuth();
 
   // Primary session state
   const [session, setSession] = useState(null);
@@ -75,7 +76,8 @@ export function InterviewRoomPage() {
   const [previousAnswers, setPreviousAnswers] = useState({});
 
   // Idempotency tracking (PRD Section 14.3 D2-04: reuse same key on retry of the same operation)
-  const currentIdempotencyKeyRef = useRef(null);
+  const mutationInFlight = useRef(false);
+  const mutationStorageKey = `paneliq_mutation_${user?.id}_${sessionId}`;
 
   // Modals & UI states
   const [isSkipDialogOpen, setIsSkipDialogOpen] = useState(false);
@@ -89,30 +91,6 @@ export function InterviewRoomPage() {
     setSessionError(null);
     setStaleVersionConflict(null);
 
-    // Check if we have a locally saved contract mock session
-    const mockStorageKey = `paneliq_mock_session_${sessionId}`;
-    const storedMock = sessionStorage.getItem(mockStorageKey);
-
-    if (storedMock) {
-      try {
-        const parsed = JSON.parse(storedMock);
-        setSession(parsed);
-        setIsUsingFixtures(true);
-        setIsLoadingSession(false);
-        // Load draft for current turn
-        if (parsed.currentTurn?.id) {
-          const draft = sessionStorage.getItem(getDraftStorageKey(user?.id, sessionId, parsed.currentTurn.id));
-          if (draft) {
-            setAnswerText(draft);
-            setSaveIndicatorState('draft_local');
-          }
-        }
-        return;
-      } catch {
-        // Fall through to real API
-      }
-    }
-
     try {
       // Real backend contract: GET /api/v1/sessions/:id
       const response = await apiClient.get(`/sessions/${sessionId}`);
@@ -125,17 +103,38 @@ export function InterviewRoomPage() {
       setSession(sessionData);
       setIsUsingFixtures(false);
 
-      // Load draft for current turn
-      if (sessionData.currentTurn?.id) {
-        const draft = sessionStorage.getItem(getDraftStorageKey(user?.id, sessionId, sessionData.currentTurn.id));
-        if (draft) {
-          setAnswerText(draft);
-          setSaveIndicatorState('draft_local');
+      const draft = sessionData.currentTurn?.id
+        ? sessionStorage.getItem(getDraftStorageKey(user?.id, sessionId, sessionData.currentTurn.id))
+        : '';
+      setAnswerText(draft || '');
+      setSaveIndicatorState(draft ? 'draft_local' : 'idle');
+      setSubmissionState('idle');
+    } catch (err) {
+      // If devMode is explicitly active and backend is unreachable, check for mock
+      if (devMode) {
+        const mockStorageKey = `paneliq_mock_session_${sessionId}`;
+        const storedMock = sessionStorage.getItem(mockStorageKey);
+        if (storedMock) {
+          try {
+            const parsed = JSON.parse(storedMock);
+            setSession(parsed);
+            setIsUsingFixtures(true);
+            if (parsed.currentTurn?.id) {
+              const draft = sessionStorage.getItem(getDraftStorageKey(user?.id, sessionId, parsed.currentTurn.id));
+              if (draft) {
+                setAnswerText(draft);
+                setSaveIndicatorState('draft_local');
+              }
+            }
+            setIsLoadingSession(false);
+            return;
+          } catch {
+            // Ignore
+          }
         }
       }
-    } catch (err) {
+
       if (err instanceof ApiClientError && err.code === 'NETWORK_FAILURE') {
-        // Offer contract fixture fallback if backend is offline
         setSessionError({
           code: 'NETWORK_FAILURE',
           message: 'Unable to connect to PanelIQ Express backend (http://localhost:4000).',
@@ -152,7 +151,7 @@ export function InterviewRoomPage() {
     } finally {
       setIsLoadingSession(false);
     }
-  }, [sessionId, user?.id]);
+  }, [sessionId, user?.id, devMode]);
 
   useEffect(() => {
     fetchSession();
@@ -192,11 +191,16 @@ export function InterviewRoomPage() {
       return;
     }
 
-    // Reuse existing key if retrying a failed attempt; generate new key otherwise
-    if (!currentIdempotencyKeyRef.current) {
-      currentIdempotencyKeyRef.current = generateIdempotencyKey();
+    if (mutationInFlight.current) return;
+    const body = { turnId: currentTurn.id, expectedSessionVersion: session.version, answerText: answerText.trim() };
+    let idempotencyKey;
+    try {
+      idempotencyKey = getMutationKey(sessionStorage, mutationStorageKey, 'answers', body, generateIdempotencyKey);
+    } catch {
+      setSubmissionErrorMessage('Local storage is unavailable. Enable it before submitting so retries can be recovered.');
+      return;
     }
-    const idempotencyKey = currentIdempotencyKeyRef.current;
+    mutationInFlight.current = true;
 
     setSubmissionState('submitting');
     setSaveIndicatorState('submitting');
@@ -218,7 +222,8 @@ export function InterviewRoomPage() {
 
         // Clear local draft and idempotency key
         sessionStorage.removeItem(getDraftStorageKey(user?.id, sessionId, currentTurn.id));
-        currentIdempotencyKeyRef.current = null;
+        sessionStorage.removeItem(mutationStorageKey);
+        mutationInFlight.current = false;
         setAnswerText('');
 
         // Indicate successful save
@@ -240,11 +245,7 @@ export function InterviewRoomPage() {
       // Body: { turnId, expectedSessionVersion, answerText }
       const response = await apiClient.post(
         `/sessions/${sessionId}/answers`,
-        {
-          turnId: currentTurn.id,
-          expectedSessionVersion: session.version,
-          answerText: answerText.trim(),
-        },
+        body,
         {
           headers: {
             'Idempotency-Key': idempotencyKey,
@@ -253,6 +254,7 @@ export function InterviewRoomPage() {
       );
 
       const updatedSession = response.data?.session;
+      if (!updatedSession?.id || !response.data?.answerId) throw new Error('The server did not confirm the saved turn. Refresh before retrying.');
 
       // Record answer text for potential constraint review
       setPreviousAnswers((prev) => ({
@@ -262,7 +264,8 @@ export function InterviewRoomPage() {
 
       // Clear local draft and idempotency key
       sessionStorage.removeItem(getDraftStorageKey(user?.id, sessionId, currentTurn.id));
-      currentIdempotencyKeyRef.current = null;
+      sessionStorage.removeItem(mutationStorageKey);
+        mutationInFlight.current = false;
       setAnswerText('');
 
       // Update session with next turn
@@ -301,6 +304,8 @@ export function InterviewRoomPage() {
         setSubmissionState('error');
         setSubmissionErrorMessage(err.message || 'An unexpected error occurred.');
       }
+    } finally {
+      mutationInFlight.current = false;
     }
   };
 
@@ -308,7 +313,16 @@ export function InterviewRoomPage() {
   const handleConfirmSkip = async () => {
     if (!session || !session.currentTurn) return;
     const currentTurn = session.currentTurn;
-    const idempotencyKey = generateIdempotencyKey();
+    if (mutationInFlight.current) return;
+    const body = { turnId: currentTurn.id, expectedSessionVersion: session.version, confirm: true };
+    let idempotencyKey;
+    try {
+      idempotencyKey = getMutationKey(sessionStorage, mutationStorageKey, 'skip', body, generateIdempotencyKey);
+    } catch {
+      setSubmissionErrorMessage('Local storage is unavailable. Enable it before skipping.');
+      return;
+    }
+    mutationInFlight.current = true;
 
     setIsSkipDialogOpen(false);
     setSubmissionState('submitting');
@@ -334,11 +348,7 @@ export function InterviewRoomPage() {
       // Body: { turnId, expectedSessionVersion, confirm: true }
       const response = await apiClient.post(
         `/sessions/${sessionId}/skip`,
-        {
-          turnId: currentTurn.id,
-          expectedSessionVersion: session.version,
-          confirm: true,
-        },
+        body,
         {
           headers: {
             'Idempotency-Key': idempotencyKey,
@@ -347,6 +357,7 @@ export function InterviewRoomPage() {
       );
 
       const updatedSession = response.data?.session;
+      if (!updatedSession?.id || !response.data?.answerId) throw new Error('The server did not confirm the saved turn. Refresh before retrying.');
       sessionStorage.removeItem(getDraftStorageKey(user?.id, sessionId, currentTurn.id));
       setAnswerText('');
 
@@ -358,6 +369,9 @@ export function InterviewRoomPage() {
     } catch (err) {
       setSubmissionState('error');
       setSubmissionErrorMessage(err.message || 'Failed to skip turn. Please retry.');
+      if (err.status === 409) setStaleVersionConflict({ code: err.code, message: err.message });
+    } finally {
+      mutationInFlight.current = false;
     }
   };
 
@@ -387,6 +401,7 @@ export function InterviewRoomPage() {
       });
 
       const finalSession = response.data?.session;
+      if (finalSession?.status !== 'completed') throw new Error('The server did not confirm completion. Refresh to check session status.');
       if (finalSession) {
         setSession(finalSession);
       }
@@ -401,6 +416,7 @@ export function InterviewRoomPage() {
 
   // Switch to contract fixture mode if offline
   const handleEnableMockMode = () => {
+    if (!devMode) return;
     const mock = createMockSession(sessionId, profile);
     sessionStorage.setItem(`paneliq_mock_session_${sessionId}`, JSON.stringify(mock));
     setSession(mock);
@@ -433,7 +449,7 @@ export function InterviewRoomPage() {
           message={sessionError.message}
           onRetry={fetchSession}
         />
-        {sessionError.isOffline && (
+        {devMode && sessionError.isOffline && (
           <div
             style={{
               marginTop: '1.5rem',

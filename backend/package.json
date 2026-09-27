@@ -10,7 +10,9 @@
     "test": "node --test",
     "verify:auth": "node scripts/verify-auth.js",
     "verify:profiles": "node scripts/verify-profiles.js",
-    "verify:sessions": "node scripts/verify-sessions.js"
+    "verify:sessions": "node scripts/verify-sessions.js",
+    "validate:bank": "node scripts/validate-question-bank.js",
+    "verify:ai": "node scripts/smoke-ai-providers.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

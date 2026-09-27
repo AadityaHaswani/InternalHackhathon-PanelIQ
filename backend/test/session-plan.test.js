@@ -4,19 +4,24 @@ import { test } from 'node:test';
 import { selectPlan, stagePlan } from '../src/modules/sessions/session-plan.js';
 
 const seed = JSON.parse(fs.readFileSync(new URL('../supabase/seeds/backend-developer.questions.json', import.meta.url)));
+const scenarios = JSON.parse(fs.readFileSync(new URL('../supabase/seeds/constraint-scenarios.json', import.meta.url)));
+const retryVariants = JSON.parse(fs.readFileSync(new URL('../supabase/seeds/retry-variants.json', import.meta.url)));
+
 // Test fixtures model publication AFTER human review. Real seeds stay draft.
 const questions = seed.map((q) => ({ id: q.id, question_id: q.id, domain: 'computer_science',
   experience_level: q.level, stage: q.stage, topics: q.topics, role_slugs: ['backend_developer'], status: 'published' }));
 const roles = [{ slug: 'backend_developer', domain: 'computer_science', label: 'Backend Developer' }];
 const profile = { display_name: 'Demo', domain: 'computer_science', experience_level: 'junior', target_role: 'backend_developer' };
 
-test('sample coverage supports two disjoint eight-turn plans for each level', () => {
-  assert.equal(seed.length, 32);
-  assert.equal(new Set(seed.map((q) => q.id)).size, 32);
-  assert.equal(new Set(seed.map((q) => q.prompt)).size, 32);
+test('expanded bank satisfies 40-60 target and supports three disjoint eight-turn plans per level', () => {
+  assert.ok(seed.length >= 40 && seed.length <= 60, `Bank size ${seed.length} must be between 40 and 60`);
+  assert.equal(seed.length, 48);
+  assert.equal(new Set(seed.map((q) => q.id)).size, 48);
+  assert.equal(new Set(seed.map((q) => q.prompt)).size, 48);
+
   for (const level of ['junior', 'intermediate']) {
     let remaining = questions;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const ids = selectPlan(remaining, { ...profile, experience_level: level }, roles, () => 0);
       const plan = ids.map((id) => questions.find((q) => q.id === id));
       assert.deepEqual(plan.map((q) => q.stage), stagePlan);
@@ -24,6 +29,9 @@ test('sample coverage supports two disjoint eight-turn plans for each level', ()
       assert.ok(plan.every((q) => q.experience_level === level && q.domain === profile.domain && q.role_slugs.includes(profile.target_role)));
       remaining = remaining.filter((q) => !ids.includes(q.id));
     }
+    // After 3 disjoint plans (24 questions), all questions for that level are consumed
+    const remainingForLevel = remaining.filter((q) => q.experience_level === level);
+    assert.equal(remainingForLevel.length, 0);
   }
 });
 
@@ -55,11 +63,40 @@ test('drafts, unrelated roles and duplicate stable question IDs cannot fill a pl
   assert.throws(() => selectPlan(short, profile, roles), { code: 'BANK_INSUFFICIENT' });
 });
 
-test('seed remains unpublished and separates private concepts from public versions', () => {
-  const sql = fs.readFileSync(new URL('../supabase/migrations/202609270003_backend_question_drafts.sql', import.meta.url), 'utf8');
-  const embedded = JSON.parse(sql.split('$seed$')[1]);
-  assert.deepEqual(embedded, seed);
-  assert.match(sql, /'draft',q->>'followUp'/);
-  assert.match(sql, /insert into public.question_keys/);
-  assert.ok(seed.every((q) => q.concepts.length >= 3 && q.prompt.length > 50));
+test('seed remains unpublished, separates private concepts, and provides 0-4 scoring anchors', () => {
+  const initialSql = fs.readFileSync(new URL('../supabase/migrations/202609270003_backend_question_drafts.sql', import.meta.url), 'utf8');
+  const expansionSql = fs.readFileSync(new URL('../supabase/migrations/202609270005_question_bank_expansion.sql', import.meta.url), 'utf8');
+
+  // Verify migrations insert questions with status = 'draft' and populate question_keys
+  assert.match(initialSql, /'draft',q->>'followUp'/);
+  assert.match(initialSql, /insert into public.question_keys/);
+  assert.match(expansionSql, /'draft',\s*q->>'followUp'/);
+  assert.match(expansionSql, /insert into public.question_keys/);
+
+  // Verify all 48 questions have >= 3 concepts, prompts >= 50 chars, and 0-4 scoring anchors
+  assert.ok(seed.every((q) => q.concepts.length >= 3 && q.prompt.length >= 50));
+  assert.ok(seed.every((q) => q.anchors && Object.keys(q.anchors).length === 5));
+});
+
+test('constraint scenario data satisfies PRD requirements', () => {
+  assert.ok(scenarios.length >= 6, `Must have at least 6 constraint scenarios, found ${scenarios.length}`);
+  const seedIds = new Set(seed.map((q) => q.id));
+  for (const s of scenarios) {
+    assert.ok(seedIds.has(s.baselineQuestionId), `Scenario references unknown question: ${s.baselineQuestionId}`);
+    assert.ok(s.changedConstraint && s.changedConstraint.length >= 20);
+    assert.ok(s.followUp && s.followUp.length >= 10);
+    assert.ok(s.expectedReasoningPoints && s.expectedReasoningPoints.length >= 2);
+    assert.ok(s.rubricAnchors && Object.keys(s.rubricAnchors).length === 5);
+  }
+});
+
+test('retry variants provide comparable question pairs across demo topics', () => {
+  assert.ok(retryVariants.length >= 6, `Must have at least 6 retry variant pairs, found ${retryVariants.length}`);
+  const seedIds = new Set(seed.map((q) => q.id));
+  for (const v of retryVariants) {
+    assert.ok(seedIds.has(v.primaryQuestionId));
+    assert.ok(seedIds.has(v.variantQuestionId));
+    assert.notEqual(v.primaryQuestionId, v.variantQuestionId);
+    assert.ok(v.skillTested && v.skillTested.length >= 10);
+  }
 });

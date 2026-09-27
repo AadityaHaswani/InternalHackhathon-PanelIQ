@@ -1,0 +1,74 @@
+[
+  {
+    "topic": "concurrency_inventory",
+    "domain": "computer_science",
+    "level": "junior",
+    "primaryQuestionId": "be-j-concurrency-stock",
+    "variantQuestionId": "be-j-concurrency-counters",
+    "skillTested": "Preventing read-modify-write lost updates under concurrent access",
+    "notes": "Primary tests decrementing stock bounds; variant tests counter increment lost updates."
+  },
+  {
+    "topic": "idempotency_retries",
+    "domain": "computer_science",
+    "level": "junior",
+    "primaryQuestionId": "be-j-concurrency-retry",
+    "variantQuestionId": "be-i-api-idempotency",
+    "skillTested": "Designing idempotency mechanisms to safely handle network retry duplicate requests",
+    "notes": "Junior tests conceptual key recognition; intermediate variant tests distributed reservation and payload hashing."
+  },
+  {
+    "topic": "database_indexing",
+    "domain": "computer_science",
+    "level": "junior",
+    "primaryQuestionId": "be-j-db-index",
+    "variantQuestionId": "be-i-db-query-plan",
+    "skillTested": "Investigating query performance and designing effective B-tree indexes",
+    "notes": "Primary tests single-column user_id index; variant tests composite index column ordering and explain plans."
+  },
+  {
+    "topic": "reliability_timeouts",
+    "domain": "computer_science",
+    "level": "junior",
+    "primaryQuestionId": "be-j-reliability-timeout",
+    "variantQuestionId": "be-i-reliability-circuit-breaker",
+    "skillTested": "Protecting server resources when downstream dependencies fail or hang",
+    "notes": "Primary tests HTTP request timeouts; variant tests full three-state circuit breaker pattern."
+  },
+  {
+    "topic": "database_integrity",
+    "domain": "computer_science",
+    "level": "junior",
+    "primaryQuestionId": "be-j-db-uniqueness",
+    "variantQuestionId": "be-j-db-foreign-keys",
+    "skillTested": "Enforcing relational integrity and consistency at the database engine level",
+    "notes": "Primary tests UNIQUE constraints under concurrency; variant tests FOREIGN KEY referential integrity."
+  },
+  {
+    "topic": "api_evolution",
+    "domain": "computer_science",
+    "level": "intermediate",
+    "primaryQuestionId": "be-j-api-validation",
+    "variantQuestionId": "be-i-api-versioning",
+    "skillTested": "Designing robust API contracts and managing backward-compatible field evolution",
+    "notes": "Primary tests input validation and error envelopes; variant tests expand-contract zero-downtime field deprecation."
+  },
+  {
+    "topic": "distributed_concurrency",
+    "domain": "computer_science",
+    "level": "intermediate",
+    "primaryQuestionId": "be-i-concurrency-version",
+    "variantQuestionId": "be-i-concurrency-distributed-lock",
+    "skillTested": "Coordinating concurrent updates across distributed nodes without data loss",
+    "notes": "Primary tests optimistic concurrency with version numbers; variant tests distributed locks with TTL leases and fencing tokens."
+  },
+  {
+    "topic": "caching_resilience",
+    "domain": "computer_science",
+    "level": "intermediate",
+    "primaryQuestionId": "be-i-reliability-cache",
+    "variantQuestionId": "be-i-api-rate-limiting",
+    "skillTested": "Using fast in-memory caches to protect database systems while maintaining correctness",
+    "notes": "Primary tests cache vs authoritative DB separation; variant tests Redis distributed rate limiting with sliding windows."
+  }
+]

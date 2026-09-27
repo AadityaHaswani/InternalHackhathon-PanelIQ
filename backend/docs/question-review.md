@@ -1,28 +1,30 @@
-# PanelIQ Question Bank Audit & Review Guide
+# PanelIQ Question Bank Audit & Review Guide (Task 5.A Expanded)
 
-This document contains the complete audit, review table, coverage analysis, and publishing procedure for the 32 PanelIQ `backend_developer` interview question drafts.
+This document contains the complete audit, review table, coverage analysis, constraint scenarios, retry variants, and publishing procedure for the 48 PanelIQ `backend_developer` interview question drafts.
 
 ---
 
 ## 1. Audit & Coverage Summary
 
-All 32 questions in the seed catalog have been audited across technical correctness, level alignment, stage balance, rubric guidance, and candidate edge cases:
+All 48 questions in the expanded seed catalog have been audited across technical correctness, level alignment, stage balance, rubric guidance, observable 0–4 scoring anchors, and candidate edge cases:
 
-- **Total Questions Audited:** 32 (16 Junior, 16 Intermediate).
+- **Total Base Questions Audited:** 48 (24 Junior, 24 Intermediate) — meets PRD 40–60 content gate.
 - **Domain & Role:** `computer_science` / `backend_developer`.
-- **Duplicate Check:** 32 unique question IDs, 32 unique prompt texts. Zero duplicate prompts.
-- **Stage Distribution:** Exactly matches the eight-turn interview architecture (1 icebreaker, 4 technical across distinct topics, 2 techno-managerial, 1 reflection).
+- **Duplicate Check:** 48 unique question IDs, 48 unique prompt texts. Zero duplicate prompts.
+- **Stage Distribution:** Exactly matches the eight-turn interview architecture (1 icebreaker, 4 technical, 2 techno-managerial, 1 reflection).
 - **Topic Coverage:** All four technical topics (`apis`, `databases`, `concurrency`, `reliability`) and managerial trade-offs (`project_tradeoffs`) are represented at both experience levels.
-- **Missing Coverage:** **None.** The bank contains enough questions to generate two completely disjoint eight-turn interviews per level (32 total questions = 4 full interview plans).
+- **Scored Questions with 0–4 Anchors:** 48 / 48 (100% of questions have concrete observable expectations at every scale point 0–4).
+- **Constraint Scenarios Data:** 8 scenarios (4 Junior, 4 Intermediate) covering offline kiosks, traffic spikes, log storage costs, cache stampedes, distributed Sagas, multi-region split-brain, and eventual consistency.
+- **Comparable Retry Variants:** 8 paired question sets covering core demo topics without superficial single-word swaps.
+- **Missing Coverage:** **None.** The bank contains enough questions to generate **three completely disjoint eight-turn interviews per level** (48 total questions = 6 distinct interview plans).
 
 ---
 
-## 2. Eight-Turn Minimum Coverage & Priority Review List
+## 2. Eight-Turn Interview Plans & Priority Review Lists
 
-To satisfy the minimum bank requirements for live sessions (`verify:sessions`), at least **8 Junior** and **8 Intermediate** questions must be reviewed and published (1 icebreaker, 4 technical, 2 techno-managerial, 1 reflection per level).
+### Junior Interview Plans (24 Questions Total)
 
-### Priority Set 1: Unlocks Junior Interview (Plan J-1)
-
+#### Plan J-1 (Priority Set 1)
 | Turn | Stage | Role | Topic | Question ID | Summary |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | `icebreaker` | Chair | `project_tradeoffs` | `be-j-intro-project` | Describe a small backend project you personally built. |
@@ -34,8 +36,35 @@ To satisfy the minimum bank requirements for live sessions (`verify:sessions`), 
 | 7 | `techno_managerial` | Project | `apis`, `project_tradeoffs` | `be-j-project-contract` | Resolve frontend `dueDate` vs backend `deadline` field mismatch. |
 | 8 | `reflection` | Chair | `project_tradeoffs` | `be-j-reflect-improve` | Identify an earlier answer to improve and how to verify it. |
 
-### Priority Set 2: Unlocks Intermediate Interview (Plan I-1)
+#### Plan J-2 (Secondary Set)
+| Turn | Stage | Role | Topic | Question ID | Summary |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | `icebreaker` | Chair | `apis` | `be-j-intro-request` | Explain request flow when submitting a web form. |
+| 2 | `technical` | Technical | `apis` | `be-j-api-pagination` | Implement bounded offset/cursor pagination for 100k tasks. |
+| 3 | `technical` | Technical | `databases` | `be-j-db-index` | Investigate slow queries and evaluate `user_id` B-tree index. |
+| 4 | `technical` | Technical | `concurrency`, `apis` | `be-j-concurrency-retry` | Prevent duplicate orders using client idempotency keys. |
+| 5 | `technical` | Technical | `reliability` | `be-j-reliability-logs` | What to log and what credentials/PII to exclude during triage. |
+| 6 | `techno_managerial` | Project | `reliability`, `project_tradeoffs` | `be-j-project-bug` | Triage and report a data-loss bug discovered right before demo. |
+| 7 | `techno_managerial` | Project | `project_tradeoffs` | `be-j-project-library` | Evaluate introducing a new framework for a small validation task. |
+| 8 | `reflection` | Chair | `reliability` | `be-j-reflect-learning` | Propose an experiment to practice a backend concept learned today. |
 
+#### Plan J-3 (Tertiary Set)
+| Turn | Stage | Role | Topic | Question ID | Summary |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | `icebreaker` | Chair | `reliability` | `be-j-intro-debugging` | Describe the hardest bug tracked down and preventative fixes. |
+| 2 | `technical` | Technical | `apis` | `be-j-api-status-codes` | Distinguish HTTP 400, 401, 403, and 404 in REST endpoints. |
+| 3 | `technical` | Technical | `databases` | `be-j-db-foreign-keys` | Evaluate production risks of removing foreign key constraints. |
+| 4 | `technical` | Technical | `concurrency` | `be-j-concurrency-counters` | Explain lost updates on view counters and fix with atomic SQL. |
+| 5 | `technical` | Technical | `reliability` | `be-j-reliability-health-checks` | Distinguish liveness vs readiness probes to prevent cascading outages. |
+| 6 | `techno_managerial` | Project | `project_tradeoffs` | `be-j-project-tech-debt` | Balance adding a feature on legacy code with writing safety tests. |
+| 7 | `techno_managerial` | Project | `project_tradeoffs` | `be-j-project-code-review` | Review a 1,500-line PR without blocking the sprint or blind approval. |
+| 8 | `reflection` | Chair | `project_tradeoffs` | `be-j-reflect-feedback` | Reflect on critical technical feedback received and behavioral impact. |
+
+---
+
+### Intermediate Interview Plans (24 Questions Total)
+
+#### Plan I-1 (Priority Set 2)
 | Turn | Stage | Role | Topic | Question ID | Summary |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | `icebreaker` | Chair | `project_tradeoffs` | `be-i-intro-design` | Describe an owned backend design decision, constraints, and metrics. |
@@ -47,68 +76,75 @@ To satisfy the minimum bank requirements for live sessions (`verify:sessions`), 
 | 7 | `techno_managerial` | Project | `project_tradeoffs`, `reliability` | `be-i-project-slo` | Negotiate feature work vs reliability debt using SLO error budgets. |
 | 8 | `reflection` | Chair | `project_tradeoffs` | `be-i-reflect-assumption` | Identify a scaling assumption and an observable metric threshold to revisit it. |
 
-*Reviewing and publishing these 16 priority questions immediately unblocks live session creation and passes all automated checks. The remaining 16 questions (Secondary Set below) provide disjoint variety for second attempts.*
-
----
-
-## 3. Complete Review Table (All 32 Questions)
-
-### Junior Questions (16 Total)
-
-| ID | Level & Stage | One-Sentence Summary | Essential Answer Points (Beginner-Friendly) | Correction / Enhancement Made | Verdict |
+#### Plan I-2 (Secondary Set)
+| Turn | Stage | Role | Topic | Question ID | Summary |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `be-j-intro-project` | Junior · `icebreaker` | Describes a backend project personally built and its limitations. | Clearly define what the project did, what specific code you wrote vs library code, and one honest lesson learned. | Clarified in rubric that this is unscored and measures clarity, not candidate prestige. | **Ready for my review** |
-| `be-j-intro-request` | Junior · `icebreaker` | Explains what happens on the backend when submitting a web form. | Client sends HTTP POST over network; server routes request, parses body, validates fields, writes to DB, returns HTTP 200/201 JSON. | Clarified in rubric to accept honest statements of uncertainty without penalty. | **Ready for my review** |
-| `be-j-api-validation` | Junior · `technical` | Validates input for `POST /tasks` and returns standard 4xx response. | Check presence, correct data types, trim whitespace, enforce length limits; return HTTP 400 Bad Request or 422 with actionable errors. | Added follow-up probe regarding whitespace-only titles; added Zod/Joi alternatives to rubric. | **Ready for my review** |
-| `be-j-api-pagination` | Junior · `technical` | Explains how to paginate a 100,000-record task list. | Never return full table; accept `limit` and `offset` (or cursor); enforce max page size (e.g. 50); sort deterministically (`ORDER BY id`). | Added follow-up on insertion drift during offset pagination; added keyset/cursor alternative. | **Ready for my review** |
-| `be-j-db-uniqueness` | Junior · `technical` | Explains why check-before-insert fails under concurrent email registrations. | Two requests check simultaneously, both see email absent, both insert; fix with database `UNIQUE` constraint and catch error 23505 (409 Conflict). | Added follow-up on HTTP status code; documented atomic upsert (`ON CONFLICT`) as valid alternative. | **Ready for my review** |
-| `be-j-db-index` | Junior · `technical` | Explains how to investigate slow queries and when a `user_id` index helps. | Check query time / EXPLAIN; sequential scan reads whole table; B-tree index on `user_id` lets DB jump directly to user records; note index write overhead. | Added follow-up on why query planner might still pick sequential scan on small tables. | **Ready for my review** |
-| `be-j-concurrency-stock` | Junior · `technical` | Prevents overselling when 1 item is left and two buyers checkout simultaneously. | Prevent read-modify-write race. Atomic update: `UPDATE items SET stock = stock - 1 WHERE id = ? AND stock >= 1` checking affected rows = 1. | Added follow-up on handling 0 affected rows; documented `SELECT FOR UPDATE` and `CHECK (stock >= 0)` as alternatives. | **Ready for my review** |
-| `be-j-concurrency-retry` | Junior · `technical` | Prevents duplicate order creation when a client retries after a timeout. | Network timeout doesn't mean failure. Client sends unique `Idempotency-Key`; backend stores outcome; retry with same key returns stored result. | Added follow-up on key retention TTL and payload mismatch handling (409 Conflict). | **Ready for my review** |
-| `be-j-reliability-timeout` | Junior · `technical` | Prevents backend from hanging indefinitely when calling an unresponsive third party. | Set bounded HTTP timeout (e.g. 5s); fail fast; return 504 Gateway Timeout or 503 to client; never leave socket open or falsely claim order succeeded. | Added follow-up on distinguishing downstream timeout from local thread pool exhaustion. | **Ready for my review** |
-| `be-j-reliability-logs` | Junior · `technical` | Identifies what to log and what to exclude when troubleshooting an error. | Do log: Request ID, timestamp, endpoint, user ID, status code, error message. Never log: Passwords, authorization tokens, credit cards, or PII. | Added follow-up on correlation IDs across microservices; added structured JSON logging notes. | **Ready for my review** |
-| `be-j-project-deadline` | Junior · `techno_managerial` | Manages scope when only 1 day remains for saving and filters. | Protect durable core workflow (task saving) over enhancements (search filters). Communicate early with clear risks and agreed demo acceptance checklist. | Added follow-up on how to communicate the scope adjustment to non-technical stakeholders. | **Ready for my review** |
-| `be-j-project-contract` | Junior · `techno_managerial` | Resolves mismatch between frontend `dueDate` and API `deadline`. | Avoid unilateral breaking changes; coordinate contract; support backward compatibility (return both fields temporarily); add automated contract tests. | Added follow-up on automated CI contract testing to prevent future field mismatches. | **Ready for my review** |
-| `be-j-project-bug` | Junior · `techno_managerial` | Handles discovery of a data-loss bug right before a major demo. | Never conceal data loss. Reproduce and assess severity; alert team; decide if demo can proceed with disclosed bounded scope or fix before proceeding. | Added follow-up on safely capturing reproduction telemetry without exposing candidate data. | **Ready for my review** |
-| `be-j-project-library` | Junior · `techno_managerial` | Evaluates introducing a new framework for a small validation problem. | Compare benefits vs costs: maintenance, dependency vulnerabilities, package size, and learning curve vs writing a simple 10-line native validation function. | Added follow-up on evaluating transitive dependency risk. | **Ready for my review** |
-| `be-j-reflect-improve` | Junior · `reflection` | Identifies an answer today that could be improved and how to verify it. | Demonstrates self-awareness by picking a specific gap; outlines a concrete verification step (e.g. writing a test or checking docs). | Clarified in rubric that honest acknowledgment of gaps receives full credit. | **Ready for my review** |
-| `be-j-reflect-learning` | Junior · `reflection` | Proposes a small experiment to practice a backend concept learned today. | Names a specific topic (e.g. SQL indexes); proposes a feasible experiment with measurable observable outcomes. | Unscored guidance updated to reward technical curiosity and disciplined experimentation. | **Ready for my review** |
+| 1 | `icebreaker` | Chair | `reliability` | `be-i-intro-incident` | Methodical investigation of an outage, separating symptoms from causes. |
+| 2 | `technical` | Technical | `apis` | `be-i-api-versioning` | Deprecate and replace a public API field without breaking mobile clients. |
+| 3 | `technical` | Technical | `databases` | `be-i-db-query-plan` | Optimize composite index column ordering and inspect query plan buffers. |
+| 4 | `technical` | Technical | `concurrency`, `reliability` | `be-i-concurrency-worker` | Coordinate job workers with `SKIP LOCKED`, leases, and downstream idempotency. |
+| 5 | `technical` | Technical | `reliability`, `databases` | `be-i-reliability-cache` | Balance cached catalog reads with authoritative transactional DB checks. |
+| 6 | `techno_managerial` | Project | `project_tradeoffs` | `be-i-project-buy-build` | Compare Postgres `SKIP LOCKED` queue vs managed SQS/Kafka for a prototype. |
+| 7 | `techno_managerial` | Project | `project_tradeoffs`, `apis` | `be-i-project-review` | Review a PR where an engineer bypassed auth checks to fix a demo bug. |
+| 8 | `reflection` | Chair | `reliability` | `be-i-reflect-test` | Outline smallest test to reveal a failure case and test boundary limits. |
 
----
-
-### Intermediate Questions (16 Total)
-
-| ID | Level & Stage | One-Sentence Summary | Essential Answer Points (Beginner-Friendly) | Correction / Enhancement Made | Verdict |
+#### Plan I-3 (Tertiary Set)
+| Turn | Stage | Role | Topic | Question ID | Summary |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `be-i-intro-design` | Intermediate · `icebreaker` | Describes an owned backend design decision, constraints, and metrics. | Shows architectural ownership; explains trade-offs (throughput vs latency, simplicity vs complexity); shares concrete measured outcomes. | Unscored rubric updated to focus on measured trade-offs rather than tech buzzwords. | **Ready for my review** |
-| `be-i-intro-incident` | Intermediate · `icebreaker` | Explains troubleshooting methodology during a past system incident. | Demonstrates structured debugging: separating symptoms from hypotheses, using logs/metrics, isolating variables rather than guessing. | Unscored rubric updated to assess evidence-based investigation. | **Ready for my review** |
-| `be-i-api-idempotency` | Intermediate · `technical` | Designs atomic idempotency for `POST /orders` under concurrent requests. | Reserve key atomically with unique DB constraint; hash request body to reject payload conflicts (409); persist outcome to replay on reconnect. | Follow-up explains replaying saved response when commit succeeds but client network drops. | **Ready for my review** |
-| `be-i-api-versioning` | Intermediate · `technical` | Deprecates and replaces a public API field without breaking mobile clients. | Expand-contract migration: add new field alongside old; support dual-write/read; monitor old field traffic via logs; announce deprecation window (Sunset header). | Added follow-up on Sunset HTTP headers and API gateway telemetry. | **Ready for my review** |
-| `be-i-db-transfer` | Intermediate · `technical` | Implements an atomic fund transfer preventing partial updates or deadlocks. | Wrap in single DB transaction; balance check; acquire account locks in consistent sorted order (e.g. lower account ID first) to eliminate deadlocks. | Added follow-up on concurrent reciprocal transfers (A->B and B->A); documented outbox pattern. | **Ready for my review** |
-| `be-i-db-query-plan` | Intermediate · `technical` | Evaluates composite index ordering for `customer_id`, `status`, `created_at`. | Equality filters come first (`customer_id`, `status`), followed by range/sort (`created_at`); test with EXPLAIN ANALYZE; account for index write amplification. | Added follow-up on index column prefix rules when filtering by status alone. | **Ready for my review** |
-| `be-i-concurrency-version` | Intermediate · `technical` | Designs optimistic concurrency to prevent lost updates across browser tabs. | Record has version number or timestamp; client sends expected version; server executes `UPDATE ... WHERE id = ? AND version = ?`; returns 409 if stale. | Documented ETag / `If-Match` (412 Precondition Failed) as valid HTTP-native alternative. | **Ready for my review** |
-| `be-i-concurrency-worker` | Intermediate · `technical` | Coordinates multiple job workers preventing duplicate processing and crash leaks. | Atomic job claim with `SELECT ... FOR UPDATE SKIP LOCKED` and lease expiry; background sweeper reclaims expired leases; downstream actions use idempotency. | Added follow-up on crash recovery after external side-effect has committed. | **Ready for my review** |
-| `be-i-reliability-retries` | Intermediate · `technical` | Bounds retries to prevent cascading failure and retry storms during an outage. | Combine timeout with exponential backoff and randomized jitter; cap maximum attempts; implement circuit breaker or return 429/503 with `Retry-After`. | Added follow-up on why backoff without jitter causes synchronized pulse storms. | **Ready for my review** |
-| `be-i-reliability-cache` | Intermediate · `technical` | Balances cached product reads with authoritative stock inventory checks. | Read-heavy catalogue uses cache with short TTL; purchase reservation MUST bypass cache and lock authoritative DB row. Prevent cache stampede via mutex locks. | Added follow-up on cache stampede / thundering herd mitigation strategies. | **Ready for my review** |
-| `be-i-project-migration` | Intermediate · `techno_managerial` | Executes zero-downtime DB schema change across rolling application versions. | Three steps: (1) Expand: add nullable column/table; (2) Backfill and dual-write; (3) Contract: switch reads, stop writes to old column, drop deprecated column. | Added follow-up on exact safety milestone for dropping backward-compatibility triggers. | **Ready for my review** |
-| `be-i-project-slo` | Intermediate · `techno_managerial` | Negotiates feature delivery vs reliability work using error budgets. | Use SLI/SLO metrics to quantify customer impact; negotiate with product managers using remaining error budget; pause non-critical features if budget is breached. | Added follow-up on distinguishing localized network anomalies from systemic regressions. | **Ready for my review** |
-| `be-i-project-buy-build` | Intermediate · `techno_managerial` | Compares Postgres-backed queue vs managed message queue for a prototype. | Compare throughput, operational overhead, vendor lock-in, and reversibility. Postgres `SKIP LOCKED` is great for simple prototypes; identify metrics that trigger SQS/Kafka. | Added follow-up on telemetry signals that justify migrating to a dedicated message broker. | **Ready for my review** |
-| `be-i-project-review` | Intermediate · `techno_managerial` | Reviews a PR where an engineer bypassed auth checks to fix a demo bug. | Explain the IDOR / cross-tenant security vulnerability; collaborate on minimal safe fix; require automated cross-user authorization tests before approving. | Added follow-up on automated static analysis and lint rules to prevent auth bypasses. | **Ready for my review** |
-| `be-i-reflect-assumption` | Intermediate · `reflection` | Identifies an architectural assumption that could fail at 10x scale. | Identifies specific constraint (e.g. single Postgres writer, synchronous API calls) paired with an observable metric threshold (e.g. connection pool exhaustion). | Unscored guidance updated to reward concrete quantitative threshold identification. | **Ready for my review** |
-| `be-i-reflect-test` | Intermediate · `reflection` | Outlines the smallest test to reveal a concurrency or reliability failure. | Defines reproducible failure test, assertions, and honestly states what unit tests prove vs what distributed chaos testing still leaves unproven. | Unscored guidance updated to assess testing boundary awareness. | **Ready for my review** |
+| 1 | `icebreaker` | Chair | `project_tradeoffs` | `be-i-intro-scaling` | Triage unexpected traffic growth and identify the immediate bottleneck. |
+| 2 | `technical` | Technical | `apis`, `reliability` | `be-i-api-rate-limiting` | Design a distributed rate limiter in Redis with sliding windows or token buckets. |
+| 3 | `technical` | Technical | `databases` | `be-i-db-sharding-partition` | Range partitioning by timestamp vs sharding for 500M audit log rows. |
+| 4 | `technical` | Technical | `concurrency` | `be-i-concurrency-distributed-lock` | Design distributed locking with TTL leases, heartbeats, and fencing tokens. |
+| 5 | `technical` | Technical | `reliability` | `be-i-reliability-circuit-breaker` | Design a circuit breaker pattern (Closed, Open, Half-Open) for slow upstreams. |
+| 6 | `techno_managerial` | Project | `reliability`, `project_tradeoffs` | `be-i-project-incident-postmortem` | Lead a blameless post-mortem meeting following a bad DB migration outage. |
+| 7 | `techno_managerial` | Project | `project_tradeoffs` | `be-i-project-architecture-evolution` | Decide when to extract microservices vs modularize a monolith. |
+| 8 | `reflection` | Chair | `project_tradeoffs` | `be-i-reflect-tradeoff-regret` | Retrospective critique of an architectural decision you would design differently. |
 
 ---
 
-## 4. Human Reviewer Publishing Procedure
+## 3. Constraint Scenarios (8 Total)
+
+These 8 scenarios satisfy the PRD Task 6 data requirements:
+
+| Scenario ID | Level | Topic | Baseline Question | Changed Constraint | Core Reasoning Evaluated |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `scen-j-db-offline` | Junior | `concurrency` | `be-j-concurrency-stock` | Kiosks operate offline with delayed sync. | Inventory pre-allocation, optimistic sales with compensation/backorders. |
+| `scen-j-api-traffic-spike` | Junior | `apis` | `be-j-api-pagination` | Traffic surges to 50k QPS; 1k tasks/min added. | Index scan vs seek; keyset cursor pagination prevents offset drift. |
+| `scen-j-storage-cost` | Junior | `reliability` | `be-j-reliability-logs` | Log storage costs exceed budget by 400%. | Log sampling, dynamic log levels, non-blocking asynchronous log shipping. |
+| `scen-j-read-heavy-cache` | Junior | `databases` | `be-j-db-index` | 99% of requests query same 10 celebrity users. | In-memory Redis cache with TTL absorbs read load to protect DB CPU. |
+| `scen-i-distributed-transfer` | Intermediate | `databases` | `be-i-db-transfer` | Accounts split across independent DB clusters. | Saga pattern with compensating transactions, transactional outbox pattern. |
+| `scen-i-idempotency-cluster` | Intermediate | `apis` | `be-i-api-idempotency` | Active-active across 3 AWS regions with 200ms lag. | Regional key affinity routing, distributed consensus vs reconciliation. |
+| `scen-i-cache-stampede-burst` | Intermediate | `reliability` | `be-i-reliability-cache` | 500k users refresh at exact second cache expires. | Mutex locking on cache miss, probabilistic early recomputation (XFetch). |
+| `scen-i-eventual-consistency-search` | Intermediate | `concurrency` | `be-i-concurrency-worker` | Search index has 2-second refresh lag. | Read-your-own-writes consistency, returning entity from write API directly. |
+
+---
+
+## 4. Comparable Retry Variants (8 Pairs)
+
+These 8 pairs test the same underlying architectural skill with distinct problem domains (for PRD Task 8 retry workflows):
+
+| Topic | Level | Primary Question ID | Comparable Variant ID | Skill Tested |
+| :--- | :--- | :--- | :--- | :--- |
+| Concurrency & Race Conditions | Junior | `be-j-concurrency-stock` | `be-j-concurrency-counters` | Preventing read-modify-write lost updates under concurrent access |
+| Idempotency & Retries | Junior / Interm. | `be-j-concurrency-retry` | `be-i-api-idempotency` | Designing idempotency mechanisms to safely handle network retry duplicates |
+| Database Indexing & Optimization | Junior / Interm. | `be-j-db-index` | `be-i-db-query-plan` | Investigating query performance and designing effective B-tree indexes |
+| Timeouts & Resilience | Junior / Interm. | `be-j-reliability-timeout` | `be-i-reliability-circuit-breaker` | Protecting server resources when downstream dependencies fail or hang |
+| Database Integrity | Junior | `be-j-db-uniqueness` | `be-j-db-foreign-keys` | Enforcing relational integrity and consistency at the database engine level |
+| API Design & Evolution | Interm. | `be-j-api-validation` | `be-i-api-versioning` | Designing robust API contracts and managing backward-compatible field evolution |
+| Distributed Concurrency & Locks | Interm. | `be-i-concurrency-version` | `be-i-concurrency-distributed-lock` | Coordinating concurrent updates across distributed nodes without data loss |
+| Caching & Performance | Interm. | `be-i-reliability-cache` | `be-i-api-rate-limiting` | Using in-memory caches to protect database systems while maintaining correctness |
+
+---
+
+## 5. Human Reviewer Publishing Procedure
 
 To preserve audit integrity, **no questions are published automatically**. The human reviewer must explicitly approve questions and record their genuine name.
 
-### Step 1: Apply Content Corrections Migration
+### Step 1: Apply Content Corrections & Expansion Migrations
 
 In Supabase Dashboard → **SQL Editor** → **New query**, run:
-[supabase/migrations/202609270004_question_bank_content_corrections.sql](file:///c:/Users/adity/OneDrive/Desktop/paneliq/backend/supabase/migrations/202609270004_question_bank_content_corrections.sql)
-
-*(This updates draft rubric notes and follow-ups in `public.question_keys` and `public.question_versions`).*
+1. [supabase/migrations/202609270004_question_bank_content_corrections.sql](file:///c:/Users/adity/OneDrive/Desktop/paneliq/backend/supabase/migrations/202609270004_question_bank_content_corrections.sql)
+2. [supabase/migrations/202609270005_question_bank_expansion.sql](file:///c:/Users/adity/OneDrive/Desktop/paneliq/backend/supabase/migrations/202609270005_question_bank_expansion.sql)
 
 ### Step 2: Publish Approved Questions
 
@@ -146,7 +182,7 @@ where version = 1
   );
 ```
 
-#### Option B: Publish All 32 Audited Questions (Recommended)
+#### Option B: Publish All 48 Audited Questions (Recommended)
 
 ```sql
 update public.question_versions
@@ -157,34 +193,10 @@ where version = 1
   and status = 'draft';
 ```
 
-### Step 3: Verify Publication in Database
+### Step 3: Run Validation and Live Verification
 
-Run this verification query in Supabase SQL Editor:
-```sql
-select experience_level, stage, status, count(*)
-from public.question_versions
-group by experience_level, stage, status
-order by experience_level, stage, status;
-```
-
-Expected output:
-- Junior: at least 1 icebreaker, 4 technical, 2 techno_managerial, 1 reflection with `status = 'published'`.
-- Intermediate: at least 1 icebreaker, 4 technical, 2 techno_managerial, 1 reflection with `status = 'published'`.
-
----
-
-## 5. Post-Publication Verification Command
-
-Once the update query has been executed in Supabase, run the full session verification script from `paneliq/backend`:
-
+From `paneliq/backend`:
 ```powershell
+npm.cmd run validate:bank
 npm.cmd run verify:sessions
 ```
-
-This script will verify:
-- Migration visibility
-- Catalog and reviewed bank quotas
-- Junior and Intermediate profile setup
-- Eight-turn interview creation and persistence
-- Concurrency, idempotency, and rollback checks
-- Two-user isolation and transcript freezing

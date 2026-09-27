@@ -131,20 +131,186 @@ This document tracks backend engineering progress, architectural decisions, comp
   3. Re-run `npm.cmd run verify:sessions` once questions are published to verify complete session lifecycle, transaction RPCs, concurrency, and RLS.
   4. Run `supabase/tests/session-rollback.sql` in SQL Editor for fault-injection rollback verification.
 
-### Task 5A: Question Bank Audit & Human Review Readiness
-- **Status:** COMPLETED. Review guide prepared, additive content corrections generated; manual publication PENDING.
+### Task 5A: Question Bank Audit, Content Expansion & Human Review Readiness
+- **Status:** COMPLETED. Question bank expanded to 48 questions (satisfying PRD 40-60 gate), 8 constraint scenarios, and 8 retry variant pairs. Additive migrations prepared; human publication PENDING.
 - **Deliverables:**
-  - `backend/docs/question-review.md`: Complete audit and compact review table for all 32 backend-developer drafts. Outlines essential beginner-friendly answer points, accepted alternative approaches, stage coverage, and priority unlocking plans. Contains the explicit, non-automated human publishing procedure.
-  - `supabase/migrations/202609270004_question_bank_content_corrections.sql`: Additive transactional migration that enriches `public.question_keys.rubric_notes` with question-specific grading rubrics, candidate edge cases, and accepted alternatives, and populates `public.question_versions.reviewed_follow_up` with targeted follow-up prompts. Deliberately modifies only rows where `status = 'draft'`.
+  - `supabase/seeds/backend-developer.questions.json`: Expanded from 32 to 48 questions (24 Junior, 24 Intermediate) with 0-4 scoring anchors, concrete grading rubrics, >=3 concepts per question, and prompts >=50 characters.
+  - `supabase/seeds/constraint-scenarios.json`: 8 constraint scenarios with changed constraints, follow-ups, reasoning points, and 0-4 rubric anchors.
+  - `supabase/seeds/retry-variants.json`: 8 comparable retry variant pairs across core demo topics (concurrency, idempotency, indexing, resilience).
+  - `supabase/migrations/202609270004_question_bank_content_corrections.sql`: Additive migration enriching the first 32 draft questions with rubric notes and reviewed follow-ups.
+  - `supabase/migrations/202609270005_question_bank_expansion.sql`: Additive transactional migration inserting 16 new questions (draft status) and updating rubric notes with explicit 0-4 scoring anchors.
+  - `scripts/validate-question-bank.js`: Validation CLI verifying question counts, prompt uniqueness, schemas, anchors, scenarios, and variants (`npm run validate:bank`).
+  - `backend/docs/question-review.md`: Complete human review guide, plan layouts (J-1/J-2/J-3, I-1/I-2/I-3), scenario summaries, retry variant catalog, and SQL publication instructions.
+  - `test/session-plan.test.js`: Expanded test suite asserting 48 base questions, disjoint plan execution, draft isolation, scenario validation, and retry pairs.
 - **Verification:**
   - `npm.cmd run lint`: passed, 0 errors/warnings.
-  - `npm.cmd test`: 66 passed, 0 failed.
-  - `verify:sessions`: Remains blocked on `catalog-and-reviewed-bank` as intended because zero drafts are published until the human reviewer completes approval.
+  - `npm.cmd run validate:bank`: passed, 48 base questions, 8 scenarios, 8 retry pairs.
+  - `npm.cmd test`: 68 passed, 0 failed.
+  - `verify:sessions`: Correctly blocked on `catalog-and-reviewed-bank` until human reviewer approves and publishes questions.
 - **Next Manual Steps:**
-  1. Human reviewer applies `202609270004_question_bank_content_corrections.sql` in Supabase SQL Editor.
-  2. Human reviewer reviews priority questions in `backend/docs/question-review.md` and runs the publication query with their real name.
+  1. Human reviewer applies `202609270004_question_bank_content_corrections.sql` and `202609270005_question_bank_expansion.sql` in Supabase SQL Editor.
+  2. Human reviewer reviews priority questions in `backend/docs/question-review.md` and executes the publication query with truthful attribution.
   3. Re-run `npm.cmd run verify:sessions` to complete live session lifecycle validation.
 
-### Tasks 6–10
-- **Status:** NOT STARTED.
-- No constraints, scoring, AI calls, interview replay/retry, evaluator workflow, deployment or CI work was begun.
+### Task 6: Stored Constraint Scenarios (D4-06)
+- **Status:** COMPLETED.
+- **Implemented:**
+  - `src/modules/scenarios/scenario.service.js`:
+    - `getApprovedScenarios`: Fetches published/approved scenario versions.
+    - `selectScenarioForPlan`: Deterministically selects at most 1 approved constraint scenario per session matching domain, level, role, and baseline question.
+    - `formatSafeTurnDto`: Sanitizes scenario turns for candidate output—strips private question keys, scenario keys, expected reasoning points, and rubric anchors.
+  - `supabase/migrations/202609270006_constraint_scenarios_and_evaluations.sql`:
+    - Created `scenario_versions` and `scenario_keys` tables with snapshot immutability triggers.
+    - Seeded the 8 approved scenarios from `supabase/seeds/constraint-scenarios.json`.
+    - Extended `session_turns` with `turn_type`, `parent_turn_id`, `scenario_version_id`, `constraint_snapshot`, `source`, `prompt`, `stage`, and `panel_role`.
+    - Extended transaction RPC `save_interview_turn` to atomically insert a challenge turn with a separate ID upon answering a baseline scenario turn without altering the original baseline answer.
+  - `test/scenarios.test.js`: Comprehensive 8-suite test verifying approved selection, level matching, single scenario limit, separate challenge turn/answer creation, candidate key isolation, idempotent challenge safety, and rejection of unpublished scenarios.
+- **Verification:**
+  - `npm.cmd test`: All 8 Task 6 unit/integration tests passed.
+
+---
+
+### Task 7: Reports and Expert Workflow (D4-07)
+- **Status:** COMPLETED.
+- **Implemented:**
+  - **Deterministic Scoring Engine (`src/modules/evaluations/scoring.service.js`):**
+    - Official PRD formula: `100 * sum(weight * rating / 4) / sum(applicable weights)` with weights: Correctness 40%, Reasoning 25%, Relevance 20%, Tradeoffs 15%.
+    - Renormalization of weights when criteria are marked not applicable (`applicable: false`).
+    - Excludes unscored `icebreaker` and `reflection` turns.
+    - Character-offset & exact-quote evidence validation (`validateEvidence`) with integer offset verification and exact answer slice matching (`answer.slice(start, end) === excerpt`). Rejects invalid excerpts/bounds without silent repair.
+    - Explicitly skipped scored turns default to rating 0 with exact reason `"No response submitted"`.
+    - Nullable ratings for pending evaluations; pending criteria are never converted to zero.
+    - Session score: arithmetic mean of completed scored answer scores. Returns provisional aggregates if required scoring remains pending; final score only returned after all required criteria are evaluated.
+  - **Evaluation Service & Overrides (`src/modules/evaluations/`):**
+    - `evaluation.schema.js`, `evaluation.service.js`, `evaluation.routes.js` (`POST /api/v1/evaluations/:id/overrides`).
+    - Enforces evaluator role & session review assignment or admin authorization.
+    - Append-only review override audit trail in `review_overrides` preserving initial proposal and reason.
+  - **Report Service & Release Gate (`src/modules/reports/`):**
+    - `report.schema.js`, `report.service.js`, `report.routes.js` (`GET /api/v1/sessions/:id/report`, `GET /api/v1/sessions/:id/replay`, `POST /api/v1/sessions/:id/release`, `GET /api/v1/review-assignments`).
+    - Release rule: blocks release with HTTP 409 `SCORING_PENDING` if any required criteria are pending or session is incomplete.
+    - Candidate data isolation: candidate can only view released report and cannot access unreleased reviewer notes, private question keys, or evaluator-only metadata.
+    - Report refresh is read-only: does not trigger new evaluations or mutations.
+    - Topic and stage coverage diagnostics reporting.
+  - **Question Quality Assessment (`src/modules/questions/`):**
+    - `question-assessment.schema.js`, `question-assessment.service.js`, `question-assessment.routes.js` (`POST /api/v1/question-assessments`, `GET /api/v1/question-assessments/:id`).
+    - Deterministic metadata indicators (length, punctuation, topic matching, readiness) and draft rewrite generation; saved as `draft` without auto-publishing.
+  - **App & Router Integration:**
+    - Mounted in `src/routes/index.js` and wrapped with `Cache-Control: no-store` in `src/app.js`.
+  - **Database Migration (`supabase/migrations/202609270006_constraint_scenarios_and_evaluations.sql`):**
+    - Created tables: `user_roles`, `review_assignments`, `evaluations`, `review_overrides`, `report_revisions`, `question_assessments`.
+    - RLS policies ensuring candidate isolation and authorized evaluator review.
+  - **Tests (`test/evaluations-scoring.test.js`):**
+    - 22 tests covering scoring formula, renormalization, 0 and 4 rating boundary cases, pending rating handling, provisional vs final score, skipped turns, icebreaker exclusions, evidence offset validation, override auditing, role/assignment auth gates, report release blocks, candidate data isolation, and draft question assessments.
+- **Verification:**
+  - `npm.cmd run lint`: passed, 0 errors, 0 warnings.
+  - `npm.cmd run validate:bank`: passed, 48 questions, 8 scenarios, 8 retry pairs intact.
+  - `npm.cmd test`: 98 passed, 0 failed.
+
+---
+
+### Task 8: Live AI Providers, Bounded Fallback & AI Jobs (D4-08)
+- **Status:** COMPLETED & LIVE VERIFIED.
+- **Implemented:**
+  - **Provider Abstraction (`src/modules/ai/providers/`):**
+    - `GroqProvider`: Uses `https://api.groq.com/openai/v1/chat/completions` with JSON mode (`response_format: { type: 'json_object' }`), 8s/25s timeouts, and model fallback.
+    - `GeminiProvider`: Uses `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` with `responseMimeType: 'application/json'`, 8s/25s timeouts, and `gemini-3.5-flash-lite` supported text model.
+    - `MockProvider`: Deterministic credential-free provider for unit testing.
+  - **AIFallbackEngine (`src/modules/ai/fallback-engine.js`):**
+    - Coordinates Groq primary $\rightarrow$ Gemini secondary on timeout, 429, 5xx, or invalid structured output.
+    - Handles `Retry-After` headers and bounded single-attempt failover.
+    - Preserves bank-only mode (0 provider calls).
+  - **Follow-up Enhancement Service (`src/modules/ai/follow-up.service.js`):**
+    - Bounded contextualization with strict 2 AI-enhanced follow-ups per session limit (`MAX_AI_FOLLOW_UPS_PER_SESSION = 2`).
+    - Stored question/scenario remains the source of truth; cannot change constraints, difficulty, or assumptions.
+    - 8-second timeout with fallback to approved stored follow-up prompt.
+  - **Live AI Evaluation Service (`src/modules/ai/ai-evaluation.service.js`):**
+    - Proposes structured evaluations for 4 PRD criteria.
+    - Strict server-side evidence verification (`validateEvidence` exact slice matching); rejects invalid offsets/quotes without silent repair.
+    - Preserves candidate answers; leaves evaluation pending on failure for human review.
+  - **AI Background Jobs & Leasing (`src/modules/ai/job.service.js`):**
+    - `enqueueAIJob`, `claimNextAIJob` with atomic worker lease locking (`SKIP LOCKED`), lease expiration recovery, and session deletion safety.
+  - **Database Migration (`supabase/migrations/202609270007_ai_jobs_and_retries.sql`):**
+    - Created `public.ai_jobs` table and atomic lease functions (`claim_next_ai_job`, `complete_ai_job`, `fail_ai_job`).
+
+---
+
+### Task 9: Retry Variants & Rubric Comparisons (D4-09)
+- **Status:** COMPLETED.
+- **Implemented:**
+  - **Retry Workflow Service (`src/modules/retries/retry.service.js`):**
+    - Reads approved retry variants from `supabase/seeds/retry-variants.json`.
+    - `createRetryAttempt`: Enforces one retry per eligible answer, strict idempotency, and rejects arbitrary/unapproved question IDs.
+    - `submitRetryAnswer`: Evaluates retry answers using the same evaluation pipeline while keeping original sessions and answers immutable.
+    - **Rubric Comparison Rule:**
+      - Same rubric version: calculates numeric `score_delta = retry_score - original_score`.
+      - Different rubric version: `numeric_comparison_allowed = false`, `score_delta = null`, and blocks numeric improvement claims.
+  - **Routes & API Integration (`src/modules/retries/retry.routes.js`):**
+    - `POST /api/v1/sessions/:id/answers/:answerId/retry`
+    - `POST /api/v1/retries/:retryId/answer`
+    - `GET /api/v1/retries/:retryId`
+    - Mounted in `src/routes/index.js` and protected with `Cache-Control: no-store` in `src/app.js`.
+  - **Database Migration (`supabase/migrations/202609270007_ai_jobs_and_retries.sql`):**
+    - Created `public.answer_retries` with `UNIQUE (source_answer_id)` constraint.
+
+---
+
+### Task D4-10: Integrity and Operational Tests
+- **Status:** COMPLETED.
+- **Implemented:**
+  - **Operational Integrity Suite (`test/operational-integrity.test.js` - 15 tests):**
+    1. `D4-10.1`: Candidate A cannot read Candidate B's report (`403 EVALUATOR_REQUIRED`).
+    2. `D4-10.2`: Candidate A cannot access Candidate B's replay transcript (`403 EVALUATOR_REQUIRED`).
+    3. `D4-10.3`: Candidate cannot release reports (`403 EVALUATOR_REQUIRED`).
+    4. `D4-10.4`: Evaluator assigned to Session A cannot release Session B (`403 ASSIGNMENT_REQUIRED`).
+    5. `D4-10.5`: Admin can release report without specific session assignment.
+    6. `D4-10.6`: Candidate cannot retry another candidate's answer (`404 SESSION_NOT_FOUND`).
+    7. `D4-10.7`: Stale tab submission rejected with version mismatch (`409 SESSION_STALE`).
+    8. `D4-10.8`: Concurrent double-click submissions with different keys: one accepted, second rejected with `409 IDEMPOTENCY_CONFLICT`.
+    9. `D4-10.9`: Fabricated quotes claiming absence are rejected by server evidence validator (`400 INVALID_EVIDENCE`).
+    10. `D4-10.10`: Malformed evidence offsets (negative start, end < start, out of bounds) strictly rejected.
+    11. `D4-10.11`: Late AI result after session deletion is safely ignored and does not corrupt database state.
+    12. `D4-10.12`: Released report revision cannot be overwritten by subsequent evaluation writes (`409 REVISION_IMMUTABLE`).
+    13. `D4-10.13`: Prompt injection in candidate answer text is sanitized and treated purely as string data; cannot alter schema.
+    14. `D4-10.14`: Malformed AI provider output is rejected before database persistence.
+    15. `D4-10.15`: 10 simultaneous synthetic sessions progress concurrently without cross-session pollution, duplicate turn positions, or corrupted assignments.
+  - **End-to-End Integration Journey (`test/integration-journey.test.js` - 1 test):**
+    - Step 1: Candidate starts session and completes all turns.
+    - Step 2: Session turns and candidate answers are atomically preserved.
+    - Step 3: Evaluation proposals created across PRD criteria (Correctness, Reasoning, Relevance, Tradeoffs).
+    - Step 4: Semantic evaluations generated via AI provider pipeline.
+    - Step 5: Evaluator reviews and applies review override with rationale.
+    - Step 6: Evaluator releases official report revision.
+    - Step 7: Candidate retrieves released report (provisional flag cleared, final score calculated).
+    - Step 8: Candidate retrieves immutable replay transcript.
+    - Step 9: Candidate spawns eligible retry attempt with question variant.
+    - Step 10: Original answer remains strictly immutable.
+    - Step 11: Candidate submits answer to retry attempt.
+    - Step 12: Same evaluation pipeline evaluates retry answer.
+    - Step 13: Numeric score comparison calculated using compatible rubric version.
+    - Step 14: Attacker cannot access or retry candidate session.
+    - Step 15: Released report revision cannot be silently overwritten.
+  - **Frontend Reproducible Error Fixtures (`docs/error-fixtures.md` & `test/fixtures/error-fixtures.json`):**
+    - Complete, machine-readable JSON catalog of 20 deterministic error response envelopes.
+    - Comprehensive guide covering HTTP status codes, machine-readable error codes, retryable flags, and recommended frontend actions.
+  - **Supabase / PostgreSQL RLS Distinction:**
+    - Service-layer authorization and ownership isolation are rigorously verified in unit/service tests.
+    - Live PostgreSQL Row Level Security (RLS) policies are defined in migrations `0004`, `0006`, and `0007`. Verification against a live Supabase instance is performed via `node scripts/verify-sessions.js`.
+
+---
+
+### Verification Summary (Tasks 1–10)
+- `npm.cmd run lint`: **0 errors, 0 warnings** (clean).
+- `npm.cmd run validate:bank`: **48 questions, 8 scenarios, 8 retry pairs intact** (clean).
+- `npm.cmd test`: **137 passed, 0 failed** across all 11 test suites.
+- `npm.cmd run verify:ai` (Live smoke test):
+  - Groq Primary: **PASS**
+  - Gemini Secondary: **PASS**
+  - Provider Fallback: **PASS**
+- **Security Check:** Zero API keys hardcoded, logged, or printed.
+- **Frontend Isolation:** Zero frontend files touched.
+
+---
+
+### Task 11 / Deployment
+- **Status:** NOT STARTED. Scheduled for subsequent deployment phase.
+
