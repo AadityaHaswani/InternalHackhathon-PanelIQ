@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from './supabase';
-import { apiClient, setApiAccessToken } from './api-client';
+import { apiClient, setApiAccessToken, getApiAccessToken } from './api-client';
 import { MOCK_USERS } from '../mocks/auth/auth.fixtures';
 
 const AuthContext = createContext(null);
@@ -8,36 +8,51 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [token, setToken] = useState(null);
+  const [token, setTokenState] = useState(null);
+  const setToken = (value) => {
+    setApiAccessToken(value);
+    setTokenState(value);
+  };
   const [role, setRole] = useState('candidate');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Development mode fallback when Supabase credentials are missing or explicit demo requested
-  const [devMode, setDevMode] = useState(!isSupabaseConfigured);
+  const [devMode, setDevMode] = useState(false);
 
-  // Sync token to API client whenever it changes
-  useEffect(() => {
-    setApiAccessToken(token);
-  }, [token]);
-
-  // Fetch verified profile from backend GET /api/v1/me
-  const fetchBackendIdentity = useCallback(async (accessToken) => {
+  // Fetch verified profile from backend GET /api/v1/me and role from user_roles
+  const fetchBackendIdentity = useCallback(async (accessToken, userId = null) => {
     try {
       const response = await apiClient.get('me', { token: accessToken });
+      if (getApiAccessToken() !== accessToken) return null;
       if (response?.data) {
         setUser(response.data.user);
         setProfile(response.data.profile);
-        // Determine role: backend currently does not provide admin grants in token/profile,
-        // so default to candidate unless explicit admin/evaluator metadata exists
+
+        const currentUserId = response.data.user?.id || userId;
+        if (isSupabaseConfigured && supabase && currentUserId) {
+          try {
+            const { data: roleRows, error: roleError } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', currentUserId);
+            if (roleError) throw roleError;
+            if (getApiAccessToken() !== accessToken) return null;
+            const roles = roleRows?.map((row) => row.role) || [];
+            setRole(roles.includes('admin') ? 'admin' : roles.includes('evaluator') ? 'evaluator' : 'candidate');
+          } catch (rErr) {
+            console.warn('Role lookup fallback to candidate:', rErr.message);
+            setRole('candidate');
+          }
+        } else {
+          setRole('candidate');
+        }
         return response.data;
       }
     } catch (err) {
       console.warn('Backend /me fetch failed or profile absent:', err.message);
-      // Profile may be null if newly registered and unonboarded
-      if (err.code === 'PROFILE_FORBIDDEN' || err.code === 'AUTH_REQUIRED') {
-        setError(err);
-      }
+      setError(err);
+      throw err;
     }
     return null;
   }, []);
@@ -59,7 +74,7 @@ export function AuthProvider({ children }) {
             setUser(session.user);
             setToken(session.access_token);
             setDevMode(false);
-            await fetchBackendIdentity(session.access_token);
+            await fetchBackendIdentity(session.access_token, session.user.id);
           } else if (mounted) {
             setUser(null);
             setProfile(null);
@@ -70,13 +85,12 @@ export function AuthProvider({ children }) {
           if (mounted) setError(err);
         }
       } else if (mounted) {
-        // Fallback to initial mock candidate in dev mode for UI exploration
-        const defaultAccount = MOCK_USERS.candidate;
-        setUser({ id: defaultAccount.id, email: defaultAccount.email });
-        setProfile(defaultAccount.profile);
-        setToken(defaultAccount.token);
-        setRole(defaultAccount.role);
-        setDevMode(true);
+        // When Supabase is unconfigured, start unauthenticated
+        setUser(null);
+        setProfile(null);
+        setToken(null);
+        setRole('candidate');
+        setDevMode(false);
       }
 
       if (mounted) setIsLoading(false);
@@ -87,19 +101,27 @@ export function AuthProvider({ children }) {
     // Listen to Supabase auth events if configured
     let subscription = null;
     if (isSupabaseConfigured && supabase) {
-      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
         if (!mounted) return;
         if (session?.user) {
           setUser(session.user);
           setToken(session.access_token);
           setDevMode(false);
-          await fetchBackendIdentity(session.access_token);
+          setIsLoading(true);
+          // Supabase auth events run under an auth lock. Defer queries until it is released.
+          setTimeout(() => {
+            if (!mounted || getApiAccessToken() !== session.access_token) return;
+            fetchBackendIdentity(session.access_token, session.user.id)
+              .catch((identityError) => { if (mounted) setError(identityError); })
+              .finally(() => { if (mounted) setIsLoading(false); });
+          }, 0);
         } else {
           setUser(null);
           setProfile(null);
           setToken(null);
+          setRole('candidate');
+          setIsLoading(false);
         }
-        setIsLoading(false);
       });
       subscription = data.subscription;
     }
@@ -124,26 +146,16 @@ export function AuthProvider({ children }) {
       }
       setUser(data.user);
       setToken(data.session.access_token);
-      await fetchBackendIdentity(data.session.access_token);
-      setIsLoading(false);
+      try {
+        await fetchBackendIdentity(data.session.access_token, data.user.id);
+      } finally {
+        setIsLoading(false);
+      }
       return data;
     } else {
-      // Mock sign in matching test accounts
-      const matched = Object.values(MOCK_USERS).find((u) => u.email.toLowerCase() === email.toLowerCase());
-      const account = matched || {
-        id: `usr_${Date.now()}`,
-        email,
-        role: 'candidate',
-        profile: null,
-        token: `mock_token_${Date.now()}`,
-      };
-      setUser({ id: account.id, email: account.email });
-      setProfile(account.profile);
-      setToken(account.token);
-      setRole(account.role);
-      setDevMode(true);
       setIsLoading(false);
-      return { user: account, session: { access_token: account.token } };
+      throw new Error('Authentication is not configured. Configure Supabase before signing in.');
+
     }
   };
 
@@ -162,21 +174,8 @@ export function AuthProvider({ children }) {
       setIsLoading(false);
       return data;
     } else {
-      // Dev mode instant registration
-      const newAccount = {
-        id: `usr_${Date.now()}`,
-        email,
-        role: 'candidate',
-        profile: null,
-        token: `mock_token_${Date.now()}`,
-      };
-      setUser({ id: newAccount.id, email: newAccount.email });
-      setProfile(null);
-      setToken(newAccount.token);
-      setRole('candidate');
-      setDevMode(true);
       setIsLoading(false);
-      return { user: newAccount, session: { access_token: newAccount.token } };
+      throw new Error('Authentication is not configured. Configure Supabase before creating an account.');
     }
   };
 
@@ -185,14 +184,17 @@ export function AuthProvider({ children }) {
     setIsLoading(true);
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.auth.signOut();
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) throw signOutError;
       } catch (err) {
-        console.warn('Sign out error:', err);
+        setIsLoading(false);
+        setError(err);
+        throw err;
       }
     }
     // Clear drafts from sessionStorage as required by PRD
     try {
-      sessionStorage.clear();
+      Object.keys(sessionStorage).filter((key) => key.startsWith('paneliq_')).forEach((key) => sessionStorage.removeItem(key));
     } catch {
       // Ignore sessionStorage exceptions
     }
@@ -211,8 +213,7 @@ export function AuthProvider({ children }) {
       });
       if (resetErr) throw resetErr;
     } else {
-      // Dev mode simulated success
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      throw new Error('Password recovery is unavailable until Supabase is configured.');
     }
   };
 
@@ -222,14 +223,16 @@ export function AuthProvider({ children }) {
       const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
       if (updateErr) throw updateErr;
     } else {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      throw new Error('Password updates are unavailable until Supabase is configured.');
     }
   };
 
   // Profile update via real PATCH /api/v1/me
   const updateProfile = async (patch) => {
-    if (!devMode && token) {
+    if (!devMode) {
+      if (!token) throw new Error('Please sign in before saving your profile.');
       const response = await apiClient.patch('me', patch, { token });
+      if (!response?.data?.profile) throw new Error('The server did not return the saved profile.');
       if (response?.data?.profile) {
         setProfile(response.data.profile);
       }
@@ -248,6 +251,7 @@ export function AuthProvider({ children }) {
 
   // Switch demo account in dev mode
   const setDevAccount = (accountKey) => {
+    if (!import.meta.env.DEV || isSupabaseConfigured) return;
     const acc = MOCK_USERS[accountKey];
     if (acc) {
       setUser({ id: acc.id, email: acc.email });

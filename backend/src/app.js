@@ -36,7 +36,7 @@ export function createApp({ verifyUser, createDatabaseClient } = {}) {
   app.use(cors(corsOptions));
 
   // Identity responses, including JSON parse errors, must not be cached.
-  app.use(['/api/v1/me', '/api/v1/catalog', '/api/v1/sessions'], (_req, res, next) => {
+  app.use(['/api/v1/me', '/api/v1/catalog', '/api/v1/sessions', '/api/v1/evaluations', '/api/v1/review-assignments', '/api/v1/question-assessments', '/api/v1/retries', '/api/v1/admin'], (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     next();
   });

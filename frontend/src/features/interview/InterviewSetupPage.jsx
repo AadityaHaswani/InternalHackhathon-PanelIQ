@@ -30,7 +30,7 @@ import { createMockSession } from './interview-fixtures';
  * - Navigates strictly to the persisted server ID: /app/interviews/:id
  */
 export function InterviewSetupPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, devMode } = useAuth();
   const navigate = useNavigate();
 
   const [catalog, setCatalog] = useState(null);
@@ -74,6 +74,7 @@ export function InterviewSetupPage() {
 
   // Handle fallback to contract-backed dev mode if backend is unreachable
   const handleEnableDevMode = () => {
+    if (!devMode) return;
     setCatalog({
       domains: ['computer_science'],
       levels: ['junior', 'intermediate'],
@@ -131,7 +132,7 @@ export function InterviewSetupPage() {
       if (err instanceof ApiClientError && err.code === 'NETWORK_FAILURE') {
         setCreationError({
           code: 'NETWORK_FAILURE',
-          message: 'Backend server is not running on port 4000. Start the backend or use contract fixture mode.',
+          message: 'Unable to reach the configured backend. Check the connection and retry.',
           allowDevFallback: true,
         });
       } else {
@@ -208,7 +209,7 @@ export function InterviewSetupPage() {
             message={catalogError.message}
             onRetry={fetchCatalog}
           />
-          {catalogError.isOffline && (
+          {devMode && catalogError.isOffline && (
             <div
               style={{
                 marginTop: '1.25rem',
@@ -426,7 +427,7 @@ export function InterviewSetupPage() {
               </div>
               <div style={{ fontSize: 'var(--font-size-sm)' }}>{creationError.message}</div>
               {creationError.action && <div>{creationError.action}</div>}
-              {creationError.allowDevFallback && (
+              {devMode && creationError.allowDevFallback && (
                 <div style={{ marginTop: '0.5rem' }}>
                   <Button size="sm" variant="secondary" onClick={handleEnableDevMode}>
                     Switch to Contract Fixture Mode

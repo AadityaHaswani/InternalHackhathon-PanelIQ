@@ -39,6 +39,23 @@ const envSchema = z.object({
         .map((origin) => origin.trim())
         .filter((origin) => origin.length > 0)
     ),
+  AI_MODE: z
+    .enum(['bank_only', 'mock', 'live'])
+    .default('bank_only'),
+  PRIMARY_AI_PROVIDER: z.string().default('groq'),
+  SECONDARY_AI_PROVIDER: z.string().default('gemini'),
+  GROQ_API_KEY: z.string().optional().default(''),
+  GROQ_MODEL: z
+    .string()
+    .optional()
+    .default('llama-3.3-70b-versatile')
+    .transform((val) => val || 'llama-3.3-70b-versatile'),
+  GEMINI_API_KEY: z.string().optional().default(''),
+  GEMINI_MODEL: z
+    .string()
+    .optional()
+    .default('gemini-3.5-flash-lite')
+    .transform((val) => val || 'gemini-3.5-flash-lite'),
 });
 
 const parsed = envSchema.safeParse(process.env);

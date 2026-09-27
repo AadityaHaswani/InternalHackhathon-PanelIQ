@@ -20,6 +20,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
 
   const [sessions, setSessions] = useState([]);
+  const [activeSessionDetail, setActiveSessionDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isUsingFixtures, setIsUsingFixtures] = useState(false);
@@ -28,26 +29,41 @@ export function DashboardPage() {
     setIsLoading(true);
     setError(null);
 
-    if (!devMode && token) {
+    if (token) {
       try {
         const response = await apiClient.get('sessions?limit=20&offset=0');
-        if (response?.data?.sessions) {
-          setSessions(response.data.sessions);
-          setIsUsingFixtures(false);
+        const list = response?.data?.sessions || [];
+        setSessions(list);
+        setIsUsingFixtures(false);
+
+        const active = list.find((s) => s.status === 'active');
+        if (active) {
+          try {
+            const detailRes = await apiClient.get(`sessions/${active.id}`);
+            setActiveSessionDetail(detailRes?.data?.session || null);
+          } catch {
+            setActiveSessionDetail(null);
+          }
         } else {
-          setSessions([]);
+          setActiveSessionDetail(null);
         }
       } catch (err) {
-        console.warn('Backend /sessions unreachable or error, falling back to development fixtures:', err.message);
-        setSessions(MOCK_SESSIONS);
-        setIsUsingFixtures(true);
+        if (devMode) {
+          setSessions(MOCK_SESSIONS);
+          setIsUsingFixtures(true);
+        } else {
+          setError(err);
+          setSessions([]);
+        }
       } finally {
         setIsLoading(false);
       }
-    } else {
-      // Dev mode: use contract fixtures
+    } else if (devMode) {
       setSessions(MOCK_SESSIONS);
       setIsUsingFixtures(true);
+      setIsLoading(false);
+    } else {
+      setSessions([]);
       setIsLoading(false);
     }
   };
@@ -56,7 +72,7 @@ export function DashboardPage() {
     fetchSessions();
   }, [token, devMode]);
 
-  const activeSession = sessions.find((s) => s.status === 'active');
+  const activeSession = activeSessionDetail || sessions.find((s) => s.status === 'active');
 
   const columns = [
     {

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   FlaskConical,
 } from 'lucide-react';
+import { useToast } from './Toast';
 import { useAuth } from '../../lib/auth-context';
 import { Badge } from './Badge';
 
@@ -40,9 +41,14 @@ export function AppShell({ children }) {
     { label: 'Assignments', path: '/admin/assignments', icon: <Users size={18} /> },
   ];
 
+  const toast = useToast();
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      toast.error(error.message || 'Sign out failed. Please retry.');
+    }
   };
 
   return (
@@ -134,9 +140,9 @@ export function AppShell({ children }) {
                 }}
                 aria-label="Switch demo role"
               >
-                <option value="candidate">Candidate (Alex Chen)</option>
-                <option value="evaluator">Evaluator (Dr. Sharma)</option>
-                <option value="admin">Admin (System Admin)</option>
+                <option value="candidate">Candidate</option>
+                <option value="evaluator">Evaluator</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
           )}

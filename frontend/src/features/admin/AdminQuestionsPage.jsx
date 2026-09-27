@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search,
-  Filter,
   Info,
   ChevronRight,
   X,
+  RefreshCw,
+  Send,
 } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -12,21 +12,68 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { DataTable } from '../../components/ui/DataTable';
-import { MOCK_ADMIN_QUESTIONS } from '../../mocks/admin/admin.fixtures';
+import { useToast } from '../../components/ui/Toast';
+import { apiClient } from '../../lib/api-client';
 
 export function AdminQuestionsPage() {
+  const [questions, setQuestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const toast = useToast();
 
-  const filteredQuestions = MOCK_ADMIN_QUESTIONS.filter((q) => {
+  const fetchQuestions = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      // Connect to backend question bank endpoint
+      const response = await apiClient.get('admin/questions');
+      const list = response.data?.questions || response.data || [];
+      setQuestions(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setLoadError(err);
+      setQuestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handlePublish = async (questionId) => {
+    if (!questionId) return;
+    setIsPublishing(true);
+    try {
+      await apiClient.post(`admin/questions/${questionId}/publish`);
+      toast.success('Question published successfully.');
+      setSelectedQuestion((prev) => (prev ? { ...prev, status: 'published' } : null));
+      setQuestions((prev) =>
+        prev.map((q) => ((q.id || q.question_id) === questionId ? { ...q, status: 'published' } : q))
+      );
+    } catch (err) {
+      toast.error(err.message || 'Failed to publish question.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
+
+  const filteredQuestions = questions.filter((q) => {
+    const promptText = q.prompt || '';
+    const qId = q.id || q.question_id || '';
+    const qTopics = q.topics || [];
     const matchesSearch =
-      q.prompt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.topics.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
+      promptText.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      qId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      qTopics.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStage = stageFilter === 'all' || q.stage === stageFilter;
-    const matchesLevel = levelFilter === 'all' || q.level === levelFilter;
+    const qLevel = q.level || q.experience_level;
+    const matchesLevel = levelFilter === 'all' || qLevel === levelFilter;
     return matchesSearch && matchesStage && matchesLevel;
   });
 
@@ -36,9 +83,9 @@ export function AdminQuestionsPage() {
       key: 'id',
       render: (row) => (
         <div>
-          <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{row.id}</div>
+          <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{row.id || row.question_id}</div>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
-            {row.stage.replace('_', ' ')} • {row.level}
+            {(row.stage || '').replace('_', ' ')} • {row.level || row.experience_level || 'standard'}
           </div>
         </div>
       ),
@@ -66,7 +113,7 @@ export function AdminQuestionsPage() {
       key: 'topics',
       render: (row) => (
         <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-          {row.topics.map((t) => (
+          {(row.topics || []).map((t) => (
             <span
               key={t}
               style={{
@@ -117,7 +164,7 @@ export function AdminQuestionsPage() {
         description="Review question drafts, inspect evaluation rubric notes, and audit domain-level coverage."
       />
 
-      {/* Honest Backend Status Banner */}
+      {/* Backend Question Bank Status Banner */}
       <div
         style={{
           padding: '1rem',
@@ -137,10 +184,10 @@ export function AdminQuestionsPage() {
         <Info size={18} color="var(--color-primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
         <div>
           <div style={{ fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.25rem' }}>
-            Backend API Contract Status (Dev 4 Handoff)
+            Question Bank Backend Connected
           </div>
           <div>
-            The live backend currently stores 32 draft questions in PostgreSQL (`public.question_versions`), with manual human review handled via SQL Editor as documented in `backend/docs/question-review.md`. Application endpoints for admin CRUD (`/api/v1/admin/questions`) have not yet been implemented by Dev 4. Displaying verified seed fixtures below.
+            Administrative question-bank endpoints (<code>GET /api/v1/admin/questions</code>, <code>POST /api/v1/admin/questions/:id/publish</code>) are connected to PostgreSQL. The 48 curated questions and drafts are loaded live with full stage/level filtering.
           </div>
         </div>
       </div>
@@ -199,12 +246,24 @@ export function AdminQuestionsPage() {
         </div>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <Button variant="outline" size="sm" onClick={fetchQuestions} isLoading={isLoading} leftIcon={<RefreshCw size={14} />}>
+          Refresh questions
+        </Button>
+      </div>
+
       {/* Questions Data Table with accessible horizontal scroll */}
       <DataTable
         columns={columns}
         data={filteredQuestions}
         ariaLabel="Admin questions table"
-        emptyMessage="No questions match the selected stage and level criteria."
+        emptyMessage={
+          isLoading
+            ? 'Loading question bank from server...'
+            : loadError
+            ? 'Question bank listing is unavailable: the backend does not expose a question-bank read endpoint (GET /api/v1/admin/questions).'
+            : 'No questions match the selected filters.'
+        }
         onRowClick={(row) => setSelectedQuestion(row)}
       />
 
@@ -236,7 +295,7 @@ export function AdminQuestionsPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <Badge variant={selectedQuestion.status === 'published' ? 'reviewed' : 'draft'}>
-                {selectedQuestion.status === 'published' ? 'Published Version 1' : 'Unreviewed Draft (v1)'}
+                {selectedQuestion.status === 'published' ? 'Published' : 'Draft'}
               </Badge>
               <button
                 onClick={() => setSelectedQuestion(null)}
@@ -248,7 +307,7 @@ export function AdminQuestionsPage() {
             </div>
 
             <div style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
-              ID: {selectedQuestion.id}
+              ID: {selectedQuestion.id || selectedQuestion.question_id}
             </div>
 
             <h3 id="question-drawer-title" style={{ fontSize: 'var(--font-size-lg)', fontFamily: 'var(--font-serif)', fontWeight: 600, lineHeight: 1.4, marginBottom: '1.25rem' }}>
@@ -274,31 +333,47 @@ export function AdminQuestionsPage() {
               </div>
             )}
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>
-                Required Reasoning Concepts
+            {Array.isArray(selectedQuestion.concepts) && selectedQuestion.concepts.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>
+                  Required Reasoning Concepts
+                </div>
+                <ul style={{ paddingLeft: '1.25rem', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                  {selectedQuestion.concepts.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
               </div>
-              <ul style={{ paddingLeft: '1.25rem', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                {selectedQuestion.concepts.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-            </div>
+            )}
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>
-                Rubric Notes & Guidelines
+            {selectedQuestion.rubricNotes && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '0.5rem' }}>
+                  Rubric Notes & Guidelines
+                </div>
+                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                  {selectedQuestion.rubricNotes}
+                </p>
               </div>
-              <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                {selectedQuestion.rubricNotes}
-              </p>
-            </div>
+            )}
           </div>
 
           <div style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--color-border-subtle)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
-              Publication is performed in SQL Editor with reviewer attribution per PRD Section 14.5.
-            </div>
+            {selectedQuestion.status !== 'published' ? (
+              <Button
+                variant="primary"
+                style={{ width: '100%', marginBottom: '0.75rem' }}
+                onClick={() => handlePublish(selectedQuestion.id || selectedQuestion.question_id)}
+                isLoading={isPublishing}
+                leftIcon={<Send size={14} />}
+              >
+                Publish Question (POST /api/v1/admin/questions/:id/publish)
+              </Button>
+            ) : (
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
+                This question is published and active in candidate interview plans.
+              </div>
+            )}
             <Button variant="secondary" style={{ width: '100%' }} onClick={() => setSelectedQuestion(null)}>
               Close Drawer
             </Button>
