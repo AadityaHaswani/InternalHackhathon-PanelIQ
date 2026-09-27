@@ -1,0 +1,482 @@
+-- AI-authored sample drafts; NOT human/expert-reviewed or published.
+-- A named human must review prompts AND private concepts before publication.
+begin;
+with seed as (
+  select value as q from jsonb_array_elements($seed$[
+  {
+    "id": "be-j-intro-project",
+    "level": "junior",
+    "stage": "icebreaker",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Describe a small backend project you built. What did it do, and which part did you personally implement?",
+    "concepts": [
+      "Concrete scope",
+      "Personal contribution",
+      "A lesson or limitation"
+    ]
+  },
+  {
+    "id": "be-j-intro-request",
+    "level": "junior",
+    "stage": "icebreaker",
+    "topics": [
+      "apis"
+    ],
+    "prompt": "Choose an application you use and describe what you think happens on its backend when you submit a form. Say where you are unsure.",
+    "concepts": [
+      "Client-server boundary",
+      "Request processing and storage",
+      "Acknowledges assumptions"
+    ]
+  },
+  {
+    "id": "be-j-api-validation",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "apis"
+    ],
+    "prompt": "You are adding POST /tasks. What would you validate before saving a task, and what response would you send for invalid input?",
+    "followUp": "What if the JSON is valid but the task title contains only spaces?",
+    "concepts": [
+      "Shape and type validation",
+      "Required trimmed fields and limits",
+      "Safe 4xx response"
+    ]
+  },
+  {
+    "id": "be-j-api-pagination",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "apis"
+    ],
+    "prompt": "A task list now has 100,000 records. How would you change its API so clients do not download every record at once?",
+    "concepts": [
+      "Bounded page size",
+      "Stable ordering",
+      "Pagination parameters and continuation"
+    ]
+  },
+  {
+    "id": "be-j-db-uniqueness",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "databases"
+    ],
+    "prompt": "Two users try to register the same email almost simultaneously. Why is checking whether the email exists before inserting insufficient, and what would you add?",
+    "concepts": [
+      "Check-insert race",
+      "Database unique constraint",
+      "Handle duplicate error safely"
+    ]
+  },
+  {
+    "id": "be-j-db-index",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "databases"
+    ],
+    "prompt": "Listing a user's tasks becomes slow as the table grows. What would you investigate, and when might an index on user_id help?",
+    "concepts": [
+      "Inspect query and data size",
+      "Index matches filter",
+      "Write/storage cost of indexes"
+    ]
+  },
+  {
+    "id": "be-j-concurrency-stock",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "concurrency"
+    ],
+    "prompt": "An item has one unit left. Two requests both read the stock as one and both place an order. Explain a database approach that prevents selling two units.",
+    "concepts": [
+      "Read-modify-write race",
+      "Conditional atomic update or lock",
+      "Check update result within transaction"
+    ]
+  },
+  {
+    "id": "be-j-concurrency-retry",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "concurrency",
+      "apis"
+    ],
+    "prompt": "A client times out after creating an order and sends the same request again. How could the API avoid creating a duplicate order?",
+    "concepts": [
+      "Timeout does not prove failure",
+      "Idempotency key with uniqueness",
+      "Return stored outcome for retry"
+    ]
+  },
+  {
+    "id": "be-j-reliability-timeout",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "Your endpoint calls a shipping provider that sometimes never responds. How would you prevent the endpoint from waiting indefinitely and explain the failure to the client?",
+    "concepts": [
+      "Bounded timeout",
+      "Safe temporary error",
+      "Avoid claiming success without result"
+    ]
+  },
+  {
+    "id": "be-j-reliability-logs",
+    "level": "junior",
+    "stage": "technical",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "A user says saving a task failed yesterday. What information would you log to investigate, and what information should stay out of the logs?",
+    "concepts": [
+      "Request ID and timestamp",
+      "Operation and coarse outcome",
+      "Exclude credentials and sensitive payloads"
+    ]
+  },
+  {
+    "id": "be-j-project-deadline",
+    "level": "junior",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Your team has one day left. Search filters and reliable task saving are both unfinished. How would you choose scope and communicate the decision?",
+    "concepts": [
+      "Protect core durable workflow",
+      "Explain scope and risks",
+      "Agree acceptance checks"
+    ]
+  },
+  {
+    "id": "be-j-project-contract",
+    "level": "junior",
+    "stage": "techno_managerial",
+    "topics": [
+      "apis",
+      "project_tradeoffs"
+    ],
+    "prompt": "A frontend teammate expects dueDate but your API returns deadline. How would you resolve this mismatch and prevent similar integration surprises?",
+    "concepts": [
+      "Agree explicit contract",
+      "Coordinate compatibility change",
+      "Example responses and integration test"
+    ]
+  },
+  {
+    "id": "be-j-project-bug",
+    "level": "junior",
+    "stage": "techno_managerial",
+    "topics": [
+      "reliability",
+      "project_tradeoffs"
+    ],
+    "prompt": "Just before a demo you find a bug that occasionally loses a saved task. How would you report it and decide whether the demo can proceed?",
+    "concepts": [
+      "Reproduce and assess impact",
+      "Do not conceal data loss",
+      "Fix or disclose bounded workaround"
+    ]
+  },
+  {
+    "id": "be-j-project-library",
+    "level": "junior",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "A teammate suggests a new framework to solve one small validation problem. What questions would you ask before adding it this week?",
+    "concepts": [
+      "Compare existing simple option",
+      "Learning and dependency cost",
+      "Time-box evaluation against need"
+    ]
+  },
+  {
+    "id": "be-j-reflect-improve",
+    "level": "junior",
+    "stage": "reflection",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Which answer today would you improve with another ten minutes, and how would you check whether your revised approach is correct?",
+    "concepts": [
+      "Identifies a specific gap",
+      "Concrete verification step",
+      "No penalty for honest uncertainty"
+    ]
+  },
+  {
+    "id": "be-j-reflect-learning",
+    "level": "junior",
+    "stage": "reflection",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "Name one backend concept you would practice after this interview. Propose a small experiment and explain what result would teach you something.",
+    "concepts": [
+      "Specific learning target",
+      "Feasible experiment",
+      "Observable result"
+    ]
+  },
+  {
+    "id": "be-i-intro-design",
+    "level": "intermediate",
+    "stage": "icebreaker",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Describe a backend design decision you owned. What constraints shaped it, and what evidence later showed whether it worked?",
+    "concepts": [
+      "Personal responsibility",
+      "Constraints and alternatives",
+      "Measured result or limitation"
+    ]
+  },
+  {
+    "id": "be-i-intro-incident",
+    "level": "intermediate",
+    "stage": "icebreaker",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "Describe a reliability problem you investigated, in a project or a practice system. How did you narrow the possible causes?",
+    "concepts": [
+      "Separates symptoms from hypotheses",
+      "Uses evidence",
+      "Clear account of own contribution"
+    ]
+  },
+  {
+    "id": "be-i-api-idempotency",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "apis",
+      "concurrency"
+    ],
+    "prompt": "Design idempotency for POST /orders. Explain how concurrent requests with the same key are handled and what happens when the key is reused with a different body.",
+    "followUp": "What if the first request commits but its response is lost?",
+    "concepts": [
+      "Atomic key reservation/unique constraint",
+      "Compare normalized request fingerprint",
+      "Persist and replay outcome"
+    ]
+  },
+  {
+    "id": "be-i-api-versioning",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "apis"
+    ],
+    "prompt": "You must replace a public API field while older mobile clients remain active. Outline a migration that avoids breaking them and how you would know when to remove the old field.",
+    "concepts": [
+      "Additive compatibility period",
+      "Consumer/version observability",
+      "Explicit deprecation and removal gate"
+    ]
+  },
+  {
+    "id": "be-i-db-transfer",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "databases",
+      "concurrency"
+    ],
+    "prompt": "A transfer debits one account and credits another. Describe transaction boundaries, concurrency controls and failure handling that prevent partial or double transfers.",
+    "concepts": [
+      "Atomic debit and credit",
+      "Consistent locking/order or conditional writes",
+      "Idempotent retry and invariant checks"
+    ]
+  },
+  {
+    "id": "be-i-db-query-plan",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "databases"
+    ],
+    "prompt": "A query filters orders by customer and status, then sorts by created_at. How would you investigate a slowdown and evaluate a composite index without assuming every index helps?",
+    "concepts": [
+      "Explain plan and realistic data",
+      "Column ordering matches access pattern",
+      "Measure latency and write overhead"
+    ]
+  },
+  {
+    "id": "be-i-concurrency-version",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "concurrency"
+    ],
+    "prompt": "Two browser tabs edit the same record. Design an optimistic concurrency API that prevents one tab silently overwriting the other's changes.",
+    "concepts": [
+      "Expected version in request",
+      "Atomic conditional update",
+      "Conflict response and refetch UX"
+    ]
+  },
+  {
+    "id": "be-i-concurrency-worker",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "concurrency",
+      "reliability"
+    ],
+    "prompt": "Two workers may pick the same pending job, and either can crash after doing work. How would you claim jobs safely and limit duplicate side effects?",
+    "concepts": [
+      "Atomic claim/lease",
+      "Lease expiry and recovery",
+      "Idempotent external side effects"
+    ]
+  },
+  {
+    "id": "be-i-reliability-retries",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "A slow downstream service causes clients and your API to retry, increasing load. Explain how you would bound retries and recover without amplifying the outage.",
+    "concepts": [
+      "Timeout and total retry budget",
+      "Backoff with jitter",
+      "Backpressure or temporary fail-fast"
+    ]
+  },
+  {
+    "id": "be-i-reliability-cache",
+    "level": "intermediate",
+    "stage": "technical",
+    "topics": [
+      "reliability",
+      "databases"
+    ],
+    "prompt": "You cache product availability, but inventory changes frequently. Describe what may safely use the cache and where authoritative checks must still occur.",
+    "concepts": [
+      "Staleness trade-off",
+      "Authoritative reservation transaction",
+      "Invalidation/TTL and failure behavior"
+    ]
+  },
+  {
+    "id": "be-i-project-migration",
+    "level": "intermediate",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs",
+      "databases"
+    ],
+    "prompt": "Your team needs a schema change while old and new API versions run together. Propose a rollout, verification and rollback strategy.",
+    "concepts": [
+      "Expand-contract migration",
+      "Backward-compatible rollout",
+      "Verify before destructive cleanup"
+    ]
+  },
+  {
+    "id": "be-i-project-slo",
+    "level": "intermediate",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs",
+      "reliability"
+    ],
+    "prompt": "A stakeholder asks for a new feature while error rates exceed the team's target. How would you use evidence to negotiate work priorities and communicate risk?",
+    "concepts": [
+      "User impact and reliability evidence",
+      "Concrete options and trade-offs",
+      "Agreed measurable recovery goal"
+    ]
+  },
+  {
+    "id": "be-i-project-buy-build",
+    "level": "intermediate",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "The team is choosing between a managed queue and a small database-backed queue for a prototype. Compare the options using workload, operational effort and migration cost.",
+    "concepts": [
+      "Actual throughput/reliability needs",
+      "Operational and cost constraints",
+      "Reversible decision with review trigger"
+    ]
+  },
+  {
+    "id": "be-i-project-review",
+    "level": "intermediate",
+    "stage": "techno_managerial",
+    "topics": [
+      "project_tradeoffs",
+      "apis"
+    ],
+    "prompt": "A teammate's change removes an ownership check to fix a demo bug. How would you review the change and help deliver a working demo without exposing other users' data?",
+    "concepts": [
+      "Explain concrete authorization risk",
+      "Find minimal safe fix",
+      "Test cross-user access before release"
+    ]
+  },
+  {
+    "id": "be-i-reflect-assumption",
+    "level": "intermediate",
+    "stage": "reflection",
+    "topics": [
+      "project_tradeoffs"
+    ],
+    "prompt": "Identify an assumption in one of your designs today that could fail at larger scale. What measurement would tell you when to revisit it?",
+    "concepts": [
+      "Specific assumption",
+      "Observable threshold",
+      "Proportionate redesign trigger"
+    ]
+  },
+  {
+    "id": "be-i-reflect-test",
+    "level": "intermediate",
+    "stage": "reflection",
+    "topics": [
+      "reliability"
+    ],
+    "prompt": "Choose one failure case discussed today and outline the smallest test that would reveal it. What would a passing result prove, and what would remain unproven?",
+    "concepts": [
+      "Concrete reproducible failure",
+      "Clear assertion",
+      "Honest limits of test coverage"
+    ]
+  }
+]$seed$::jsonb)
+), inserted as (
+  insert into public.question_versions
+    (question_id,version,prompt,domain,experience_level,stage,panel_role,topics,role_slugs,difficulty,status,reviewed_follow_up)
+  select q->>'id',1,q->>'prompt','computer_science',q->>'level',q->>'stage',
+    case q->>'stage' when 'technical' then 'technical' when 'techno_managerial' then 'project' else 'chair' end,
+    array(select jsonb_array_elements_text(q->'topics')),array['backend_developer'],
+    case q->>'level' when 'junior' then 1 else 2 end,'draft',q->>'followUp'
+  from seed returning id,question_id
+)
+insert into public.question_keys (question_version_id,expected_concepts,rubric_notes)
+select inserted.id,array(select jsonb_array_elements_text(seed.q->'concepts')),
+  case when seed.q->>'stage' in ('icebreaker','reflection')
+    then 'Unscored context/reflection. Accept honest uncertainty; do not infer personality or employability.'
+    else 'Draft guidance only. Look for the listed concepts in a coherent explanation; accept other technically sound approaches. Human review required; no scoring implemented.' end
+from inserted join seed on seed.q->>'id' = inserted.question_id;
+commit;

@@ -77,7 +77,7 @@ This document tracks backend engineering progress, architectural decisions, comp
 - **Git:** Task branch codex/task-2-supabase-auth; only Task 2 backend files belong in the commit. Commit/push outcome is reported in the task handoff.
 
 ### Task 3: Candidate profiles, PostgreSQL migration and ownership protection
-- **Status:** IMPLEMENTED; migration application and live database/RLS verification PENDING.
+- **Status:** COMPLETED. Migration applied and live database/RLS verification PASSED.
 - **Implemented:**
   - Ordered transactional migration: supabase/migrations/202609260001_create_profiles.sql. Creates only public.profiles, its narrow invoker timestamp trigger and own-row policies. Existing table/function conflicts fail; nothing is dropped or replaced.
   - Nullable candidate fields with database constraints, Auth user FK with cascading deletion, immutable client timestamps, explicit column INSERT/UPDATE grants, no anonymous or client DELETE access.
@@ -86,17 +86,65 @@ This document tracks backend engineering progress, architectural decisions, comp
   - Update-first/insert/one-conflict-update save strategy preserves concurrent partial updates without needing an owner UPDATE grant.
   - Safe 400/401/403/409/503/500 behavior. Schema defects are errors, never absent profiles. no-store also covers malformed JSON at /me.
   - Frontend contract, SQL Editor walkthrough, optional local account placeholders, and a sanitized two-account verify:profiles script. No new dependencies.
-- **Verification:**
-  - Baseline lint and all 30 Task 2 tests passed before changes.
-  - Final npm run lint: passed with no errors or warnings. Final npm test: 49 passed, 0 failed. Covers compatible Auth behavior, profile validation/partial writes, identity isolation at the request boundary, safe database errors, bounded conflict handling and actual SDK eight-second aborts using mocked fetch. No live RLS claim.
-  - Local application startup with configured environment on a temporary port passed. Health returned 200 with unchanged data; unauthenticated /me returned 401 AUTH_REQUIRED. Both request IDs matched response headers.
-  - Live smoke script missing-credential guard tested using an empty process-only override: FAIL test-account-configuration and exit 1, before network access; .env was not changed.
-  - Both dedicated-account credential pairs are present in ignored local settings (presence only checked; values never displayed).
-  - No authorized database administration tool is configured. SQL has NOT been applied by the agent; PostgreSQL constraints, actual grants and deployed RLS have NOT been verified. The live write script was not run before migration application.
-  - Mocked API/SDK tests do not prove deployed isolation. No frontend, roles, interview tables, privileged clients or global Auth changes.
-- **Manual remaining work:** Apply the complete migration once through SQL Editor, stop if an unexpected profiles table exists, inspect/record the migration and grants, confirm both dedicated accounts, start the API and run npm.cmd run verify:profiles. Detailed commands are in docs/profile-contract.md. The script writes synthetic profiles to both supplied accounts and leaves them in place.
-- **Git:** Remote history confirms Task 2 was merged into origin/main at c163d0b. Task 3 work is on codex/task-3-candidate-profiles, based on the Task 2 commit; no merge, force-push or remote change was performed. Task 3 changes remain uncommitted and unpushed for review/manual migration verification.
+- **Verification (2026-09-27):**
+  - Applied `202609260001_create_profiles.sql` via Supabase SQL Editor. Verified `to_regclass('public.profiles')` returned `profiles`.
+  - Baseline tests: `npm.cmd run lint` (0 errors, 0 warnings), `npm.cmd test` (66 passed, 0 failed).
+  - Live server started on port 4000:
+    - `npm.cmd run verify:auth`: PASSED (`PASS status=200 expectedUserMatched=true`).
+    - `npm.cmd run verify:profiles`: PASSED all 16 live checks:
+      - `PASS sign-in-account-a`
+      - `PASS sign-in-account-b`
+      - `PASS distinct-test-accounts`
+      - `PASS api-save-read-update-a`
+      - `PASS api-save-read-update-b`
+      - `PASS direct-own-read-a`
+      - `PASS direct-own-read-b`
+      - `PASS a-cannot-read-b`
+      - `PASS a-cannot-insert-for-b`
+      - `PASS a-cannot-update-b`
+      - `PASS a-cannot-transfer-ownership`
+      - `PASS protected-created_at`
+      - `PASS protected-updated_at`
+      - `PASS client-delete-denied`
+      - `PASS database-constraints-enforced`
+      - `PASS anonymous-data-api-denied`
+- **Manual remaining work:** None for Task 3. Profiles migration and live RLS gates are fully verified.
+- **Git:** Remote history confirms Task 2 was merged into origin/main at c163d0b. Task 3 work is on codex/task-3-candidate-profiles, based on the Task 2 commit; no merge, force-push or remote change was performed.
 
-### Task 4: Reviewed question bank and supported interview catalog
+### Tasks 4 and 5: Catalog, bank-backed sessions and durable answers
+- **Status:** MIGRATIONS APPLIED; LIVE DATABASE SCHEMA VERIFIED; SESSION LIFECYCLE CHECKS BLOCKED PENDING CONTENT REVIEW.
+- **Current state inspected (2026-09-27):** Working tree clean on codex/task-3-candidate-profiles. No branch, commit, push, merge or remote change performed.
+- **Database artifacts & execution:**
+  - `202609270001_question_bank.sql`: Applied successfully via Supabase SQL Editor. Created `interview_roles`, `question_versions`, `question_keys`, immutability triggers, and authenticated SELECT policies.
+  - `202609270002_interview_sessions.sql`: Applied successfully via Supabase SQL Editor. Created `sessions`, `session_turns`, `answers`, own-row SELECT RLS, and security definer transaction RPC functions (`session_state`, `create_interview_session`, `save_interview_turn`, `complete_interview_session`).
+  - `202609270003_backend_question_drafts.sql`: Applied successfully via Supabase SQL Editor. Seeded 32 draft questions in `question_versions` and 32 rubric keys in `question_keys`, all with `status = 'draft'`.
+- **Live verification (2026-09-27):**
+  - `npm.cmd run lint`: passed, 0 errors/warnings. `npm.cmd test`: 66 passed, 0 failed.
+  - `npm.cmd run verify:sessions` executed against live Supabase project:
+    - `PASS sign-in-a status=200`
+    - `PASS sign-in-b status=200`
+    - `PASS migrations-visible status=200` (all 6 required tables confirmed visible and accessible)
+    - `FAIL catalog-and-reviewed-bank status=200` (BLOCKED as intended: all 32 seed questions are unreviewed drafts; 0 questions are published).
+- **Manual remaining:**
+  1. Human content review of the 32 AI-authored drafts in `supabase/seeds/backend-developer.questions.json` and `public.question_versions`.
+  2. Publish reviewed questions via SQL Editor with truthful reviewer attribution (at least 1 icebreaker, 4 technical, 2 techno-managerial, 1 reflection per level).
+  3. Re-run `npm.cmd run verify:sessions` once questions are published to verify complete session lifecycle, transaction RPCs, concurrency, and RLS.
+  4. Run `supabase/tests/session-rollback.sql` in SQL Editor for fault-injection rollback verification.
+
+### Task 5A: Question Bank Audit & Human Review Readiness
+- **Status:** COMPLETED. Review guide prepared, additive content corrections generated; manual publication PENDING.
+- **Deliverables:**
+  - `backend/docs/question-review.md`: Complete audit and compact review table for all 32 backend-developer drafts. Outlines essential beginner-friendly answer points, accepted alternative approaches, stage coverage, and priority unlocking plans. Contains the explicit, non-automated human publishing procedure.
+  - `supabase/migrations/202609270004_question_bank_content_corrections.sql`: Additive transactional migration that enriches `public.question_keys.rubric_notes` with question-specific grading rubrics, candidate edge cases, and accepted alternatives, and populates `public.question_versions.reviewed_follow_up` with targeted follow-up prompts. Deliberately modifies only rows where `status = 'draft'`.
+- **Verification:**
+  - `npm.cmd run lint`: passed, 0 errors/warnings.
+  - `npm.cmd test`: 66 passed, 0 failed.
+  - `verify:sessions`: Remains blocked on `catalog-and-reviewed-bank` as intended because zero drafts are published until the human reviewer completes approval.
+- **Next Manual Steps:**
+  1. Human reviewer applies `202609270004_question_bank_content_corrections.sql` in Supabase SQL Editor.
+  2. Human reviewer reviews priority questions in `backend/docs/question-review.md` and runs the publication query with their real name.
+  3. Re-run `npm.cmd run verify:sessions` to complete live session lifecycle validation.
+
+### Tasks 6–10
 - **Status:** NOT STARTED.
-- Await explicit authorization before implementation.
+- No constraints, scoring, AI calls, interview replay/retry, evaluator workflow, deployment or CI work was begun.

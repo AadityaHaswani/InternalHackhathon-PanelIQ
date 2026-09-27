@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "test": "node --test",
     "verify:auth": "node scripts/verify-auth.js",
-    "verify:profiles": "node scripts/verify-profiles.js"
+    "verify:profiles": "node scripts/verify-profiles.js",
+    "verify:sessions": "node scripts/verify-sessions.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
