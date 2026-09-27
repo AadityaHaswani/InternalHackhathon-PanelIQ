@@ -20,11 +20,11 @@ import { AdminAssignmentsPage } from '../features/admin/AdminAssignmentsPage';
 // Dev 2 Owned Pages
 import { InterviewSetupPage, InterviewRoomPage } from '../features/interview';
 
-// Reports & Retries
-import { CandidateReportPage, InterviewReplayPage, TargetedRetryPage } from '../features/reports';
-
-// Evaluator & Question Lab
-import { EvaluatorQueuePage, EvaluatorSessionReviewPage, QuestionLabPage } from '../features/evaluator';
+// Dev 3 Owned Pages (Preserved from main)
+import { ReportPage } from '../features/reports/ReportPage';
+import { ReplayPage } from '../features/replay/ReplayPage';
+import { RetryPage } from '../features/retries/RetryPage';
+import { ExpertDashboard, ExpertSessionPage, QuestionLabPage } from '../features/expert';
 
 function RootLayout() {
   const location = useLocation();
@@ -51,192 +51,190 @@ const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-  // Public Marketing Pages
-  {
-    path: '/',
-    element: <LandingPage />,
-  },
-  {
-    path: '/candidates',
-    element: <CandidatesPage />,
-  },
-  {
-    path: '/evaluators',
-    element: <EvaluatorsPage />,
-  },
+      // Public Marketing Pages
+      {
+        path: '/',
+        element: <LandingPage />,
+      },
+      {
+        path: '/candidates',
+        element: <CandidatesPage />,
+      },
+      {
+        path: '/evaluators',
+        element: <EvaluatorsPage />,
+      },
 
-  // Auth Workflows
-  {
-    path: '/auth',
-    element: <AuthPage />,
-  },
-  {
-    path: '/auth/callback',
-    element: <AuthCallbackPage />,
-  },
-  {
-    path: '/auth/reset',
-    element: <PasswordResetPage />,
-  },
+      // Auth Workflows
+      {
+        path: '/auth',
+        element: <AuthPage />,
+      },
+      {
+        path: '/auth/callback',
+        element: <AuthCallbackPage />,
+      },
+      {
+        path: '/auth/reset',
+        element: <PasswordResetPage />,
+      },
 
-  // Candidate Onboarding (Protected)
-  {
-    path: '/onboarding',
-    element: (
-      <RequireAuth>
-        <OnboardingPage />
-      </RequireAuth>
-    ),
-  },
+      // Candidate Onboarding (Protected)
+      {
+        path: '/onboarding',
+        element: (
+          <RequireAuth>
+            <OnboardingPage />
+          </RequireAuth>
+        ),
+      },
 
-  // Candidate Dashboard & Workspace (Protected)
-  {
-    path: '/app',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <DashboardPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
-  {
-    path: '/app/settings',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <SettingsPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
+      // Candidate Dashboard & Workspace (Protected)
+      {
+        path: '/app',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <DashboardPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/app/settings',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <SettingsPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
 
-  // Admin Routes (Protected by Admin Role Guard)
-  {
-    path: '/admin/questions',
-    element: (
-      <RequireRole allowedRoles={['admin']}>
-        <AppShell>
-          <AdminQuestionsPage />
-        </AppShell>
-      </RequireRole>
-    ),
-  },
-  {
-    path: '/admin/assignments',
-    element: (
-      <RequireRole allowedRoles={['admin']}>
-        <AppShell>
-          <AdminAssignmentsPage />
-        </AppShell>
-      </RequireRole>
-    ),
-  },
+      // Admin Routes (Protected by Admin Role Guard)
+      {
+        path: '/admin/questions',
+        element: (
+          <RequireRole allowedRoles={['admin']}>
+            <AppShell>
+              <AdminQuestionsPage />
+            </AppShell>
+          </RequireRole>
+        ),
+      },
+      {
+        path: '/admin/assignments',
+        element: (
+          <RequireRole allowedRoles={['admin']}>
+            <AppShell>
+              <AdminAssignmentsPage />
+            </AppShell>
+          </RequireRole>
+        ),
+      },
 
-  // Dev 2 Routes: Technical Interview Setup & Live Boardroom Simulation
-  {
-    path: '/app/interviews/new',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <InterviewSetupPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
-  {
-    path: '/app/interviews/:id',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <InterviewRoomPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
-  {
-    // Alias for single interview path
-    path: '/app/interview/:id',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <InterviewRoomPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
+      // Dev 2 Routes: Technical Interview Setup & Live Boardroom Simulation
+      {
+        path: '/app/interviews/new',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <InterviewSetupPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/app/interviews/:id',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <InterviewRoomPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        // Alias for single interview path
+        path: '/app/interview/:id',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <InterviewRoomPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
 
-  // Reports & Post-Interview Experiences (Protected)
-  {
-    path: '/app/interviews/:id/report',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <CandidateReportPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
-  {
-    path: '/app/interviews/:id/replay',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <InterviewReplayPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
-  {
-    path: '/app/retries/:id',
-    element: (
-      <RequireAuth>
-        <AppShell>
-          <TargetedRetryPage />
-        </AppShell>
-      </RequireAuth>
-    ),
-  },
+      // Dev 3 Routes: Complete Implementation (Preserved from main)
+      {
+        path: '/app/interviews/:id/report',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <ReportPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/app/interviews/:id/replay',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <ReplayPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/app/retries/:id',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <RetryPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/expert',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <ExpertDashboard />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/expert/sessions/:id',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <ExpertSessionPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/expert/question-lab',
+        element: (
+          <RequireAuth>
+            <AppShell>
+              <QuestionLabPage />
+            </AppShell>
+          </RequireAuth>
+        ),
+      },
 
-  // Evaluator Routes (Protected by Evaluator / Admin Role Guard)
-  {
-    path: '/expert',
-    element: (
-      <RequireRole allowedRoles={['evaluator', 'admin']}>
-        <AppShell>
-          <EvaluatorQueuePage />
-        </AppShell>
-      </RequireRole>
-    ),
+      // Catch-all 404 Route
+      {
+        path: '*',
+        element: <NotFoundPage />,
+      },
+    ],
   },
-  {
-    path: '/expert/sessions/:id',
-    element: (
-      <RequireRole allowedRoles={['evaluator', 'admin']}>
-        <AppShell>
-          <EvaluatorSessionReviewPage />
-        </AppShell>
-      </RequireRole>
-    ),
-  },
-  {
-    path: '/expert/question-lab',
-    element: (
-      <RequireRole allowedRoles={['evaluator', 'admin']}>
-        <AppShell>
-          <QuestionLabPage />
-        </AppShell>
-      </RequireRole>
-    ),
-  },
-
-  // Catch-all 404 Route
-  {
-    path: '*',
-    element: <NotFoundPage />,
-  },
-],
-},
 ]);
 
 export function AppRouter() {

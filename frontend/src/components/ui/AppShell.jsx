@@ -9,8 +9,8 @@ import {
   Menu,
   X,
   ExternalLink,
-  FileCheck,
-  Sparkles,
+  ShieldCheck,
+  FlaskConical,
 } from 'lucide-react';
 import { useToast } from './Toast';
 import { useAuth } from '../../lib/auth-context';
@@ -31,9 +31,9 @@ export function AppShell({ children }) {
     { label: 'Settings', path: '/app/settings', icon: <Settings size={18} /> },
   ];
 
-  const evaluatorLinks = [
-    { label: 'Review Queue', path: '/expert', icon: <FileCheck size={18} /> },
-    { label: 'Question Lab', path: '/expert/question-lab', icon: <Sparkles size={18} /> },
+  const expertLinks = [
+    { label: 'Expert Queue', path: '/expert', icon: <ShieldCheck size={18} /> },
+    { label: 'Question Lab', path: '/expert/question-lab', icon: <FlaskConical size={18} /> },
   ];
 
   const adminLinks = [
@@ -262,101 +262,93 @@ export function AppShell({ children }) {
               })}
             </nav>
 
-            {/* Evaluator section */}
-            {(role === 'evaluator' || role === 'admin') && (
-              <>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'var(--color-text-muted)',
-                    padding: '0 0.75rem 0.5rem',
-                    borderTop: '1px solid var(--color-border-subtle)',
-                    paddingTop: '1rem',
-                  }}
-                >
-                  Evaluator Workspace
-                </div>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem' }}>
-                  {evaluatorLinks.map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          padding: '0.625rem 0.75rem',
-                          borderRadius: 'var(--radius-control)',
-                          fontSize: 'var(--font-size-sm)',
-                          fontWeight: isActive ? 600 : 500,
-                          color: isActive ? 'var(--color-primary)' : 'var(--color-text-main)',
-                          backgroundColor: isActive ? 'var(--color-surface-subtle)' : 'transparent',
-                          border: isActive ? '1px solid var(--color-border)' : '1px solid transparent',
-                          transition: 'all var(--transition-fast)',
-                          minHeight: '44px',
-                        }}
-                      >
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </>
-            )}
+            {/* Expert Evaluator section */}
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--color-text-muted)',
+                padding: '0 0.75rem 0.5rem',
+                borderTop: '1px solid var(--color-border-subtle)',
+                paddingTop: '1rem',
+              }}
+            >
+              Expert Evaluator
+            </div>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem' }}>
+              {expertLinks.map((item) => {
+                const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.625rem 0.75rem',
+                      borderRadius: 'var(--radius-control)',
+                      fontSize: 'var(--font-size-sm)',
+                      fontWeight: isActive ? 600 : 500,
+                      color: isActive ? 'var(--color-primary)' : 'var(--color-text-main)',
+                      backgroundColor: isActive ? 'var(--color-surface-subtle)' : 'transparent',
+                      border: isActive ? '1px solid var(--color-border)' : '1px solid transparent',
+                      transition: 'all var(--transition-fast)',
+                      minHeight: '44px',
+                    }}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
 
             {/* Admin section */}
-            {role === 'admin' && (
-              <>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'var(--color-text-muted)',
-                    padding: '0 0.75rem 0.5rem',
-                    borderTop: '1px solid var(--color-border-subtle)',
-                    paddingTop: '1rem',
-                  }}
-                >
-                  Administration
-                </div>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  {adminLinks.map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          padding: '0.625rem 0.75rem',
-                          borderRadius: 'var(--radius-control)',
-                          fontSize: 'var(--font-size-sm)',
-                          fontWeight: isActive ? 600 : 500,
-                          color: isActive ? 'var(--color-primary)' : 'var(--color-text-main)',
-                          backgroundColor: isActive ? 'var(--color-surface-subtle)' : 'transparent',
-                          border: isActive ? '1px solid var(--color-border)' : '1px solid transparent',
-                          transition: 'all var(--transition-fast)',
-                          minHeight: '44px',
-                        }}
-                      >
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </>
-            )}
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--color-text-muted)',
+                padding: '0 0.75rem 0.5rem',
+                borderTop: '1px solid var(--color-border-subtle)',
+                paddingTop: '1rem',
+              }}
+            >
+              Administration
+            </div>
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {adminLinks.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.625rem 0.75rem',
+                      borderRadius: 'var(--radius-control)',
+                      fontSize: 'var(--font-size-sm)',
+                      fontWeight: isActive ? 600 : 500,
+                      color: isActive ? 'var(--color-primary)' : 'var(--color-text-main)',
+                      backgroundColor: isActive ? 'var(--color-surface-subtle)' : 'transparent',
+                      border: isActive ? '1px solid var(--color-border)' : '1px solid transparent',
+                      transition: 'all var(--transition-fast)',
+                      minHeight: '44px',
+                    }}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
           {/* Sidebar footer */}
@@ -417,63 +409,55 @@ export function AppShell({ children }) {
                 </Link>
               ))}
 
-              {(role === 'evaluator' || role === 'admin') && (
-                <>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1rem', textTransform: 'uppercase' }}>
-                    EVALUATOR WORKSPACE
-                  </div>
-                  {evaluatorLinks.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.75rem',
-                        borderRadius: 'var(--radius-control)',
-                        fontSize: 'var(--font-size-base)',
-                        color: location.pathname === item.path ? 'var(--color-primary)' : 'var(--color-text-main)',
-                        backgroundColor: location.pathname === item.path ? 'var(--color-surface-subtle)' : 'transparent',
-                        minHeight: '44px',
-                      }}
-                    >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </Link>
-                  ))}
-                </>
-              )}
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1rem', textTransform: 'uppercase' }}>
+                EXPERT EVALUATOR
+              </div>
+              {expertLinks.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: 'var(--radius-control)',
+                    fontSize: 'var(--font-size-base)',
+                    color: location.pathname === item.path ? 'var(--color-primary)' : 'var(--color-text-main)',
+                    backgroundColor: location.pathname === item.path ? 'var(--color-surface-subtle)' : 'transparent',
+                    minHeight: '44px',
+                  }}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              ))}
 
-              {role === 'admin' && (
-                <>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1rem', textTransform: 'uppercase' }}>
-                    ADMINISTRATION
-                  </div>
-                  {adminLinks.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.75rem',
-                        borderRadius: 'var(--radius-control)',
-                        fontSize: 'var(--font-size-base)',
-                        color: location.pathname === item.path ? 'var(--color-primary)' : 'var(--color-text-main)',
-                        backgroundColor: location.pathname === item.path ? 'var(--color-surface-subtle)' : 'transparent',
-                        minHeight: '44px',
-                      }}
-                    >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </Link>
-                  ))}
-                </>
-              )}
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', marginTop: '1rem', textTransform: 'uppercase' }}>
+                ADMINISTRATION
+              </div>
+              {adminLinks.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: 'var(--radius-control)',
+                    fontSize: 'var(--font-size-base)',
+                    color: location.pathname === item.path ? 'var(--color-primary)' : 'var(--color-text-main)',
+                    backgroundColor: location.pathname === item.path ? 'var(--color-surface-subtle)' : 'transparent',
+                    minHeight: '44px',
+                  }}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              ))}
             </nav>
           </div>
         )}
