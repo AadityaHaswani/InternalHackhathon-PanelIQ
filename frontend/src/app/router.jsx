@@ -21,6 +21,12 @@ import { AdminAssignmentsPage } from '../features/admin/AdminAssignmentsPage';
 // Dev 2 Owned Pages
 import { InterviewSetupPage, InterviewRoomPage } from '../features/interview';
 
+// Dev 3 Owned Pages
+import { ReportPage } from '../features/reports/ReportPage';
+import { ReplayPage } from '../features/replay/ReplayPage';
+import { RetryPage } from '../features/retries/RetryPage';
+import { ExpertDashboard, ExpertSessionPage, QuestionLabPage } from '../features/expert';
+
 const router = createBrowserRouter([
   // Public Landing Page
   {
@@ -129,17 +135,13 @@ const router = createBrowserRouter([
     ),
   },
 
-  // Dev 3 Route Slots (Registered for navigation integrity; owned by Dev 3)
+  // Dev 3 Routes: Complete Implementation
   {
     path: '/app/interviews/:id/report',
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Evidence-Linked Scorecard & Report"
-            routePath="/app/interviews/:id/report"
-          />
+          <ReportPage />
         </AppShell>
       </RequireAuth>
     ),
@@ -149,11 +151,7 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Interview Replay Timeline"
-            routePath="/app/interviews/:id/replay"
-          />
+          <ReplayPage />
         </AppShell>
       </RequireAuth>
     ),
@@ -163,11 +161,7 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Targeted Skill Retry"
-            routePath="/app/retries/:id"
-          />
+          <RetryPage />
         </AppShell>
       </RequireAuth>
     ),
@@ -177,11 +171,7 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Evaluator Review Queue"
-            routePath="/expert"
-          />
+          <ExpertDashboard />
         </AppShell>
       </RequireAuth>
     ),
@@ -191,11 +181,7 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Evaluator Score Verification & Overrides"
-            routePath="/expert/sessions/:id"
-          />
+          <ExpertSessionPage />
         </AppShell>
       </RequireAuth>
     ),
@@ -205,11 +191,7 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <AppShell>
-          <PlaceholderRoute
-            owner="Dev 3"
-            featureName="Interviewer Question Lab & Sandbox"
-            routePath="/expert/question-lab"
-          />
+          <QuestionLabPage />
         </AppShell>
       </RequireAuth>
     ),

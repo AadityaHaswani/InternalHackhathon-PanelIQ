@@ -1,3 +1,4 @@
+@import './dev3-theme.css';
 @import './tokens.css';
 
 *, *::before, *::after {

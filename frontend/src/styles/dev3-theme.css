@@ -1,0 +1,157 @@
+/* PanelIQ Dev 3 Warm Editorial Theme & Styles (matching reference image) */
+:root {
+  /* Aligned strictly with tokens.css and reference visual language */
+  --dev3-bg: var(--color-bg, #FAF7F2);
+  --dev3-surface: var(--color-surface, #FFFFFF);
+  --dev3-surface-subtle: var(--color-surface-subtle, #F3EFEA);
+  --dev3-elevated: var(--color-surface-elevated, #FFFFFF);
+  --dev3-elevated-hover: #F8F5F0;
+  --dev3-text-main: var(--color-text-main, #1A1816);
+  --dev3-text-secondary: var(--color-text-secondary, #5E5953);
+  --dev3-text-muted: var(--color-text-muted, #8C857B);
+
+  /* Primary action & accent: terracotta / burnt orange */
+  --dev3-accent: var(--color-primary, #B85042);
+  --dev3-accent-hover: var(--color-primary-hover, #A24336);
+  --dev3-accent-bg: rgba(184, 80, 66, 0.08);
+
+  /* Semantic status colors */
+  --dev3-success: var(--color-success, #2D7252);
+  --dev3-success-bg: var(--color-success-bg, #EBF4EF);
+  --dev3-warning: var(--color-warning, #9E671E);
+  --dev3-warning-bg: var(--color-warning-bg, #FAF2E6);
+  --dev3-error: var(--color-error, #B83838);
+  --dev3-error-bg: var(--color-error-bg, #FDF2F2);
+
+  /* Borders & Shadows */
+  --dev3-border: var(--color-border, #E5DFD6);
+  --dev3-border-subtle: var(--color-border-subtle, #EFECE6);
+  --dev3-focus-ring: rgba(184, 80, 66, 0.35);
+  --dev3-shadow-card: var(--shadow-card, 0 2px 8px rgba(26, 24, 22, 0.04));
+  --dev3-shadow-drawer: -4px 0 24px rgba(26, 24, 22, 0.12);
+}
+
+/* Warm container & cards matching the reference image */
+.dev3-container {
+  background-color: var(--dev3-bg);
+  color: var(--dev3-text-main);
+  min-height: 100%;
+}
+
+.dev3-card {
+  background-color: var(--dev3-surface);
+  border: 1px solid var(--dev3-border);
+  border-radius: var(--radius-card, 14px);
+  box-shadow: var(--dev3-shadow-card);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dev3-card:hover {
+  border-color: #D6CEC3;
+}
+
+.dev3-card-elevated {
+  background-color: var(--dev3-elevated);
+  border: 1px solid var(--dev3-border);
+  border-radius: var(--radius-card, 14px);
+  box-shadow: var(--shadow-card);
+}
+
+/* Horizontal Score Bar (Warm Palette) */
+.dev3-score-track {
+  width: 100%;
+  height: 8px;
+  background-color: var(--dev3-surface-subtle);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--dev3-border-subtle);
+}
+
+.dev3-score-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Side Drawer Transitions */
+.dev3-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(26, 24, 22, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  animation: dev3FadeIn 0.2s ease forwards;
+}
+
+.dev3-drawer-panel {
+  width: 100%;
+  max-width: 540px;
+  height: 100%;
+  background-color: var(--dev3-surface);
+  border-left: 1px solid var(--dev3-border);
+  box-shadow: var(--dev3-shadow-drawer);
+  display: flex;
+  flex-direction: column;
+  animation: dev3SlideLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+@keyframes dev3FadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dev3SlideLeft {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Editorial quote highlight */
+.dev3-quote-highlight {
+  background-color: #FAF5F0;
+  border-left: 3px solid var(--dev3-accent);
+  padding: 0.75rem 1rem;
+  border-radius: 0 8px 8px 0;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--dev3-text-main);
+  border-top: 1px solid #F0ECE5;
+  border-right: 1px solid #F0ECE5;
+  border-bottom: 1px solid #F0ECE5;
+}
+
+/* Editorial Serif Heading Utility */
+.dev3-heading-serif {
+  font-family: var(--font-serif);
+  color: var(--dev3-text-main);
+  letter-spacing: -0.01em;
+}
+
+/* Micro-pulse for pending / evaluating states */
+@keyframes dev3PulseSlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.dev3-pulse {
+  animation: dev3PulseSlow 2s ease-in-out infinite;
+}
+
+/* Touch targets and focus ring accessibility */
+.dev3-interactive {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.dev3-interactive:focus-visible {
+  outline: 2px solid var(--dev3-accent);
+  outline-offset: 2px;
+}
