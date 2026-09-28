@@ -21,8 +21,13 @@ export function computeCoverageDiagnostics(turns, answers, evaluations) {
   const scoredTurns = turns.filter((t) => !UNSCORED_STAGES.includes(t.stage));
   const requiredScoredAnswers = scoredTurns.length;
 
-  const answeredTurnIds = new Set(answers.map((a) => a.turn_id));
+  const submittedAnswers = answers.filter((a) => a.state !== 'skipped');
+  const answeredTurnIds = new Set(submittedAnswers.map((a) => a.turn_id));
   const completedScoredAnswers = scoredTurns.filter((t) => answeredTurnIds.has(t.id)).length;
+
+  const skippedAnswers = answers.filter((a) => a.state === 'skipped');
+  const skippedTurnIds = new Set(skippedAnswers.map((a) => a.turn_id));
+  const skippedScoredAnswers = scoredTurns.filter((t) => skippedTurnIds.has(t.id)).length;
 
   const evalsByAnswer = new Map();
   for (const e of evaluations) {
@@ -68,6 +73,7 @@ export function computeCoverageDiagnostics(turns, answers, evaluations) {
 
   return {
     completedScoredAnswers,
+    skippedScoredAnswers,
     requiredScoredAnswers,
     evaluatedAnswers,
     pendingEvaluations,
@@ -383,10 +389,16 @@ export async function releaseReport(client, userId, sessionId, body = {}) {
 
       // If no evaluation exists for this criterion, evaluator certification establishes the rating
       if (!criterionEval) {
-        const critFromScore = body.criteria?.find?.((c) => c.id === criterionId);
-        const rating = critFromScore && typeof critFromScore.score === 'number'
-          ? Math.min(4, Math.max(0, Math.round(critFromScore.score)))
-          : 3;
+        const isSkipped = answer.state === 'skipped';
+        let rating;
+        if (isSkipped) {
+          rating = 0;
+        } else {
+          const critFromScore = body.criteria?.find?.((c) => c.id === criterionId);
+          rating = critFromScore && typeof critFromScore.score === 'number'
+            ? Math.min(4, Math.max(0, Math.round(critFromScore.score)))
+            : 3;
+        }
         const newEvalRow = {
           session_id: sessionId,
           turn_id: turn.id,
@@ -394,7 +406,7 @@ export async function releaseReport(client, userId, sessionId, body = {}) {
           criterion_id: criterionId,
           rating,
           applicable: true,
-          rationale: body.summary || body.notes || 'Certified by expert reviewer upon release.',
+          rationale: isSkipped ? 'No response submitted' : (body.summary || body.notes || 'Certified by expert reviewer upon release.'),
           evidence_source: 'human',
           evaluator_id: userId,
           report_revision: 1,
