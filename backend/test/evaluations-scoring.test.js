@@ -14,6 +14,7 @@ import {
 import {
   releaseReport,
   getSessionReport,
+  computeCoverageDiagnostics,
 } from '../src/modules/reports/report.service.js';
 import {
   computeMetadataIndicators,
@@ -500,4 +501,175 @@ test('29. question assessment computes metadata and stays draft', () => {
 
   const rewrite = generateDraftRewrite(prompt);
   assert.ok(rewrite.endsWith('?'));
+});
+
+// ============================================================================
+// SKIPPED VS ANSWERED SCORED TURNS — REGRESSION TESTS
+// ============================================================================
+
+test('30. coverage: 6 scored, 6 answered → completedScoredAnswers = 6, skipped = 0', () => {
+  const turns = Array.from({ length: 8 }, (_, i) => ({
+    id: `turn-${i}`,
+    position: i + 1,
+    stage: i === 0 ? 'icebreaker' : i === 7 ? 'reflection' : 'technical',
+  }));
+  const answers = turns
+    .filter((t) => !['icebreaker', 'reflection'].includes(t.stage))
+    .map((t) => ({ id: `a-${t.id}`, turn_id: t.id, state: 'submitted', answer_text: 'Answer' }));
+
+  const result = computeCoverageDiagnostics(turns, answers, []);
+  assert.equal(result.requiredScoredAnswers, 6);
+  assert.equal(result.completedScoredAnswers, 6);
+  assert.equal(result.skippedScoredAnswers, 0);
+});
+
+test('31. coverage: 6 scored, 4 answered, 2 skipped → completedScoredAnswers = 4', () => {
+  const turns = Array.from({ length: 8 }, (_, i) => ({
+    id: `turn-${i}`,
+    position: i + 1,
+    stage: i === 0 ? 'icebreaker' : i === 7 ? 'reflection' : 'technical',
+  }));
+  const scoredTurns = turns.filter((t) => !['icebreaker', 'reflection'].includes(t.stage));
+  const answers = scoredTurns.map((t, i) => ({
+    id: `a-${t.id}`,
+    turn_id: t.id,
+    state: i < 4 ? 'submitted' : 'skipped',
+    answer_text: i < 4 ? 'Answer' : null,
+  }));
+
+  const result = computeCoverageDiagnostics(turns, answers, []);
+  assert.equal(result.requiredScoredAnswers, 6);
+  assert.equal(result.completedScoredAnswers, 4);
+  assert.equal(result.skippedScoredAnswers, 2);
+});
+
+test('32. coverage: 6 scored, 0 answered, 6 skipped → completedScoredAnswers = 0', () => {
+  const turns = Array.from({ length: 8 }, (_, i) => ({
+    id: `turn-${i}`,
+    position: i + 1,
+    stage: i === 0 ? 'icebreaker' : i === 7 ? 'reflection' : 'technical',
+  }));
+  const scoredTurns = turns.filter((t) => !['icebreaker', 'reflection'].includes(t.stage));
+  const answers = scoredTurns.map((t) => ({
+    id: `a-${t.id}`,
+    turn_id: t.id,
+    state: 'skipped',
+    answer_text: null,
+  }));
+
+  const result = computeCoverageDiagnostics(turns, answers, []);
+  assert.equal(result.requiredScoredAnswers, 6);
+  assert.equal(result.completedScoredAnswers, 0);
+  assert.equal(result.skippedScoredAnswers, 6);
+});
+
+test('33. coverage: skipped icebreaker/reflection not counted as skipped scored', () => {
+  const turns = [
+    { id: 'ice', position: 1, stage: 'icebreaker' },
+    { id: 'tech1', position: 2, stage: 'technical' },
+    { id: 'ref', position: 3, stage: 'reflection' },
+  ];
+  const answers = [
+    { id: 'a-ice', turn_id: 'ice', state: 'skipped', answer_text: null },
+    { id: 'a-tech1', turn_id: 'tech1', state: 'submitted', answer_text: 'answer' },
+    { id: 'a-ref', turn_id: 'ref', state: 'skipped', answer_text: null },
+  ];
+
+  const result = computeCoverageDiagnostics(turns, answers, []);
+  assert.equal(result.requiredScoredAnswers, 1);
+  assert.equal(result.completedScoredAnswers, 1);
+  assert.equal(result.skippedScoredAnswers, 0);
+});
+
+test('34. coverage: submitted scored answer counts as submitted even with pending evaluation', () => {
+  const turns = [{ id: 'tech1', position: 1, stage: 'technical' }];
+  const answers = [{ id: 'a1', turn_id: 'tech1', state: 'submitted', answer_text: 'My answer' }];
+
+  const result = computeCoverageDiagnostics(turns, answers, []);
+  assert.equal(result.completedScoredAnswers, 1);
+  assert.equal(result.evaluatedAnswers, 0);
+});
+
+test('35. releaseReport assigns rating 0 to skipped scored turns, not default 3', async () => {
+  const sessionId = randomUUID();
+  const turn1Id = randomUUID();
+  const turn2Id = randomUUID();
+  const answer1Id = randomUUID();
+  const answer2Id = randomUUID();
+
+  const insertedEvals = [];
+  let savedRevision = null;
+
+  const mockClient = {
+    from: (table) => {
+      const b = {
+        select: () => b,
+        eq: () => b,
+        order: () => b,
+        limit: () => b,
+        update: () => b,
+        maybeSingle: async () => {
+          if (table === 'user_roles') return { data: { role: 'admin' } };
+          if (table === 'sessions') return { data: { id: sessionId, status: 'completed' } };
+          return { data: null };
+        },
+        single: async () => {
+          if (table === 'report_revisions') return { data: savedRevision };
+          return { data: null };
+        },
+        insert: (row) => {
+          if (table === 'evaluations') insertedEvals.push(row);
+          if (table === 'report_revisions') savedRevision = { id: randomUUID(), ...row };
+          return b;
+        },
+        then: (resolve) => {
+          if (table === 'session_turns') {
+            resolve({ data: [
+              { id: turn1Id, stage: 'technical', position: 1 },
+              { id: turn2Id, stage: 'technical', position: 2 },
+            ] });
+          } else if (table === 'answers') {
+            resolve({ data: [
+              { id: answer1Id, turn_id: turn1Id, state: 'submitted', answer_text: 'Real answer', created_at: new Date().toISOString() },
+              { id: answer2Id, turn_id: turn2Id, state: 'skipped', answer_text: null, created_at: new Date().toISOString() },
+            ] });
+          } else if (table === 'evaluations') {
+            resolve({ data: [
+              { answer_id: answer1Id, criterion_id: 'correctness', rating: 4, applicable: true },
+              { answer_id: answer1Id, criterion_id: 'reasoning', rating: 4, applicable: true },
+              { answer_id: answer1Id, criterion_id: 'relevance', rating: 4, applicable: true },
+              { answer_id: answer1Id, criterion_id: 'tradeoffs', rating: 4, applicable: true },
+            ] });
+          } else if (table === 'report_revisions') {
+            resolve({ data: [{ revision: 0 }] });
+          } else {
+            resolve({ data: [] });
+          }
+        },
+      };
+      return b;
+    },
+  };
+
+  const released = await releaseReport(mockClient, 'admin-user', sessionId);
+
+  // Skipped turn must get rating 0 for all criteria
+  const skippedEvals = insertedEvals.filter((e) => e.turn_id === turn2Id);
+  assert.equal(skippedEvals.length, 4, 'Should auto-create 4 evaluations for skipped turn');
+  for (const e of skippedEvals) {
+    assert.equal(e.rating, 0, `Skipped turn eval for ${e.criterion_id} must be 0`);
+    assert.equal(e.rationale, 'No response submitted');
+  }
+
+  // No evals should be auto-created for the submitted turn (already has all 4)
+  const submittedEvals = insertedEvals.filter((e) => e.turn_id === turn1Id);
+  assert.equal(submittedEvals.length, 0, 'Should not auto-create evals for fully evaluated turn');
+
+  // Coverage: 1 submitted, 1 skipped
+  assert.equal(released.coverage_diagnostics.completedScoredAnswers, 1);
+  assert.equal(released.coverage_diagnostics.skippedScoredAnswers, 1);
+  assert.equal(released.coverage_diagnostics.requiredScoredAnswers, 2);
+
+  // Score: submitted=100 (all 4s), skipped=0 (all 0s), mean=50
+  assert.equal(released.overall_score, 50);
 });

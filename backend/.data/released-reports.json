@@ -1,12 +1,12 @@
 {
   "c142876d-b01d-4916-92cf-1ade4dc71605": {
-    "id": "cb000e57-6896-4f3f-bef6-3c8f0abb90c9",
+    "id": "3e088de5-c366-48b5-ba50-e2f190e28cec",
     "session_id": "c142876d-b01d-4916-92cf-1ade4dc71605",
     "revision": 1,
     "status": "released",
     "overall_score": 75,
     "is_provisional": false,
-    "summary": "Strong frontend performance certified by expert reviewer.",
+    "summary": "Certified after expert calibration.",
     "coverage_diagnostics": {
       "completedScoredAnswers": 6,
       "requiredScoredAnswers": 6,
@@ -41,12 +41,54 @@
       }
     },
     "released_by": "109feb02-8a65-42b2-bc4c-c3b456e38cb5",
-    "released_at": "2026-09-27T18:44:58.018Z",
-    "created_at": "2026-09-27T18:44:58.252Z"
+    "released_at": "2026-09-27T18:47:22.680Z",
+    "created_at": "2026-09-27T18:47:22.899Z"
   },
-  "7cdd74d0-6f58-4b6b-a7ee-4db0d4a3c3e2": {
-    "id": "fb3c8c6b-69ef-4592-befb-2083946817e3",
-    "session_id": "7cdd74d0-6f58-4b6b-a7ee-4db0d4a3c3e2",
+  "15c7fc09-4856-429a-97bb-5839e8bdf2b3": {
+    "id": "b0751661-3272-43d0-b2a9-90ad25eb12cb",
+    "session_id": "15c7fc09-4856-429a-97bb-5839e8bdf2b3",
+    "revision": 1,
+    "status": "released",
+    "overall_score": 75,
+    "is_provisional": false,
+    "summary": "Official Evaluation Report",
+    "coverage_diagnostics": {
+      "completedScoredAnswers": 6,
+      "requiredScoredAnswers": 6,
+      "evaluatedAnswers": 6,
+      "pendingEvaluations": 0,
+      "topicCoverage": [
+        "project_tradeoffs",
+        "apis",
+        "concurrency",
+        "reliability",
+        "databases"
+      ],
+      "repeatedTopicIndicators": [
+        {
+          "topic": "reliability",
+          "count": 4
+        }
+      ],
+      "isProvisional": false
+    },
+    "evaluation_summary": {
+      "evaluatedTurns": 6,
+      "finalScore": 75,
+      "criteriaWeights": {
+        "correctness": 0.4,
+        "reasoning": 0.25,
+        "relevance": 0.2,
+        "tradeoffs": 0.15
+      }
+    },
+    "released_by": "109feb02-8a65-42b2-bc4c-c3b456e38cb5",
+    "released_at": "2026-09-28T02:05:17.250Z",
+    "created_at": "2026-09-28T02:05:18.036Z"
+  },
+  "c40b8cc0-4138-4723-8157-aade98db8fd3": {
+    "id": "6186332d-cba2-4d54-b956-7eff9a7b9d50",
+    "session_id": "c40b8cc0-4138-4723-8157-aade98db8fd3",
     "revision": 2,
     "status": "released",
     "overall_score": 100,
@@ -54,6 +96,7 @@
     "summary": "Candidate approved.",
     "coverage_diagnostics": {
       "completedScoredAnswers": 1,
+      "skippedScoredAnswers": 0,
       "requiredScoredAnswers": 1,
       "evaluatedAnswers": 1,
       "pendingEvaluations": 0,
@@ -72,11 +115,42 @@
       }
     },
     "released_by": "admin-user",
-    "released_at": "2026-09-27T18:45:34.489Z"
+    "released_at": "2026-09-28T02:14:57.953Z"
   },
-  "a4fce328-bd1d-44c1-b2d1-a7957dbaf5f8": {
-    "id": "6cc614bd-7a74-466a-bc31-16fabf296628",
-    "session_id": "a4fce328-bd1d-44c1-b2d1-a7957dbaf5f8",
+  "95344ad2-808a-474c-ab60-a8d949a57987": {
+    "id": "67f6278b-4dff-40de-8cae-b6b8fa3ffd2e",
+    "session_id": "95344ad2-808a-474c-ab60-a8d949a57987",
+    "revision": 1,
+    "status": "released",
+    "overall_score": 50,
+    "is_provisional": false,
+    "summary": "Official Evaluation Report",
+    "coverage_diagnostics": {
+      "completedScoredAnswers": 1,
+      "skippedScoredAnswers": 1,
+      "requiredScoredAnswers": 2,
+      "evaluatedAnswers": 2,
+      "pendingEvaluations": 0,
+      "topicCoverage": [],
+      "repeatedTopicIndicators": [],
+      "isProvisional": false
+    },
+    "evaluation_summary": {
+      "evaluatedTurns": 2,
+      "finalScore": 50,
+      "criteriaWeights": {
+        "correctness": 0.4,
+        "reasoning": 0.25,
+        "relevance": 0.2,
+        "tradeoffs": 0.15
+      }
+    },
+    "released_by": "admin-user",
+    "released_at": "2026-09-28T02:14:57.955Z"
+  },
+  "d1701d39-a9a7-4d85-a0dd-f77557c5c48b": {
+    "id": "1117d131-bd1b-4ca0-90c6-e54796e107c6",
+    "session_id": "d1701d39-a9a7-4d85-a0dd-f77557c5c48b",
     "revision": 1,
     "status": "released",
     "overall_score": 80,
@@ -84,6 +158,7 @@
     "summary": "Candidate demonstrated strong junior backend competencies with proper locking semantics.",
     "coverage_diagnostics": {
       "completedScoredAnswers": 1,
+      "skippedScoredAnswers": 0,
       "requiredScoredAnswers": 1,
       "evaluatedAnswers": 1,
       "pendingEvaluations": 0,
@@ -101,17 +176,17 @@
         "tradeoffs": 0.15
       }
     },
-    "released_by": "f8111682-4235-4dd5-a6ec-b8657b443bbc",
-    "released_at": "2026-09-27T18:45:35.251Z",
-    "created_at": "2026-09-27T18:45:35.251Z"
+    "released_by": "d24437b8-95ab-4786-8883-10f300919912",
+    "released_at": "2026-09-28T02:14:58.731Z",
+    "created_at": "2026-09-28T02:14:58.731Z"
   },
-  "2e5532c0-1833-4ff4-85e4-cf56cde0c8e7": {
-    "id": "4792437d-d8af-461c-9f7f-0006768baa43",
-    "session_id": "2e5532c0-1833-4ff4-85e4-cf56cde0c8e7",
+  "b70335ab-ef21-4a39-bb70-afbe85dc89ae": {
+    "id": "8ed95eb1-7ce4-42e7-b5b0-2870251d6fc6",
+    "session_id": "b70335ab-ef21-4a39-bb70-afbe85dc89ae",
     "revision": 1,
     "status": "released",
     "overall_score": 87.5,
-    "released_by": "422e586f-8531-40f6-b7b6-2f4905d866cb",
-    "released_at": "2026-09-27T18:45:37.513Z"
+    "released_by": "3abdc6b7-2408-4276-8ef5-2e0051abc747",
+    "released_at": "2026-09-28T02:15:01.011Z"
   }
 }
