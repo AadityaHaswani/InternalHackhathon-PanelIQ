@@ -32,7 +32,12 @@ export function getApiAccessToken() {
   return currentAccessToken;
 }
 
-const DEFAULT_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
+function resolveBaseUrl(rawUrl) {
+  const url = (rawUrl || 'http://localhost:4000/api/v1').trim().replace(/\/+$/, '');
+  return url.endsWith('/api/v1') ? url : `${url}/api/v1`;
+}
+
+const DEFAULT_BASE_URL = resolveBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 async function request(path, options = {}) {
   const {
@@ -45,7 +50,13 @@ async function request(path, options = {}) {
     ...rest
   } = options;
 
-  const url = path.startsWith('http') ? path : `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+  const cleanBase = baseUrl.replace(/\/+$/, '');
+  const cleanPath = path.replace(/^\/+/, '');
+  const url = path.startsWith('http')
+    ? path
+    : cleanBase.endsWith('/api/v1') && cleanPath.startsWith('api/v1/')
+      ? `${cleanBase.slice(0, -7)}/${cleanPath}`
+      : `${cleanBase}/${cleanPath}`;
 
   const requestHeaders = {
     Accept: 'application/json',
