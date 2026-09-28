@@ -20,6 +20,7 @@ const envSchema = z.object({
       !url.password && !url.search && !url.hash && url.pathname === '/';
   }),
   SUPABASE_PUBLISHABLE_KEY: z.string().regex(/^sb_publishable_[A-Za-z0-9_-]+$/),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional().default(''),
   PORT: z
     .string()
     .default('4000')
@@ -36,7 +37,7 @@ const envSchema = z.object({
     .transform((val) =>
       val
         .split(',')
-        .map((origin) => origin.trim())
+        .map((origin) => origin.trim().replace(/\/+$/, ''))
         .filter((origin) => origin.length > 0)
     ),
   AI_MODE: z

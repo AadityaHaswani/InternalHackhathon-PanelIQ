@@ -74,10 +74,9 @@ export function InterviewSetupPage() {
       setIsUsingFixtures(false);
     } catch (err) {
       if (err instanceof ApiClientError && err.code === 'NETWORK_FAILURE') {
-        // Backend is offline on port 4000
         setCatalogError({
           code: 'NETWORK_FAILURE',
-          message: 'Unable to connect to PanelIQ Express backend (http://localhost:4000).',
+          message: err.message || 'Unable to connect to PanelIQ backend service.',
           isOffline: true,
         });
       } else {

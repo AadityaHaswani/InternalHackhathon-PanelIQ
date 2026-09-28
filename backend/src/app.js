@@ -5,6 +5,7 @@ import { requestIdMiddleware } from './middleware/request-id.js';
 import { notFoundHandler } from './middleware/not-found.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { createApiRoutes } from './routes/index.js';
+import { healthRoutes } from './modules/health/health.routes.js';
 
 /**
  * Constructs and configures the Express application.
@@ -23,7 +24,8 @@ export function createApp({ verifyUser, createDatabaseClient } = {}) {
       if (!origin) {
         return callback(null, true);
       }
-      if (env.ALLOWED_ORIGINS.includes(origin)) {
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+      if (env.ALLOWED_ORIGINS.includes(normalizedOrigin)) {
         return callback(null, true);
       }
       const corsError = new Error(`Origin ${origin} not allowed by CORS`);
@@ -32,6 +34,9 @@ export function createApp({ verifyUser, createDatabaseClient } = {}) {
       return callback(corsError);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+    exposedHeaders: ['X-Request-Id'],
   };
   app.use(cors(corsOptions));
 
@@ -45,7 +50,8 @@ export function createApp({ verifyUser, createDatabaseClient } = {}) {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-  // 4. Mount API routes under /api/v1
+  // 4. Mount health routes and API routes
+  app.use('/health', healthRoutes);
   app.use('/api/v1', createApiRoutes(verifyUser, createDatabaseClient));
 
   // 5. JSON 404 handler for unmatched routes

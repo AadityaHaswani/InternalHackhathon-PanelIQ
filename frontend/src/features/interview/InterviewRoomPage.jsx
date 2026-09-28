@@ -137,7 +137,7 @@ export function InterviewRoomPage() {
       if (err instanceof ApiClientError && err.code === 'NETWORK_FAILURE') {
         setSessionError({
           code: 'NETWORK_FAILURE',
-          message: 'Unable to connect to PanelIQ Express backend (http://localhost:4000).',
+          message: err.message || 'Unable to connect to PanelIQ backend service.',
           isOffline: true,
         });
       } else {

@@ -8,9 +8,9 @@ function startServer() {
   try {
     const app = createApp();
 
-    const server = app.listen(env.PORT, () => {
+    const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`PanelIQ backend running on port ${env.PORT} [${env.NODE_ENV}]`);
-      console.log(`Health check: http://localhost:${env.PORT}/api/v1/health`);
+      console.log(`Health check: /api/v1/health (port ${env.PORT})`);
       console.log(`Allowed CORS origins: ${env.ALLOWED_ORIGINS.join(', ')}`);
     });
 
